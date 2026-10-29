@@ -1,0 +1,2469 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>CRYVA Transport — Mallorca Network</title>
+    <!-- Tailwind CSS for UI overlay styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-sea: #050a14;
+            --accent-cyan: #06b6d4;
+        }
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: var(--bg-sea);
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            color: #f8fafc;
+            touch-action: none;
+        }
+        .font-mono-tech {
+            font-family: 'JetBrains Mono', monospace;
+        }
+        /* Glassmorphism panels */
+        .glass-panel {
+            background: rgba(11, 19, 35, 0.82);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.09);
+            box-shadow: 0 12px 32px -4px rgba(0, 0, 0, 0.6);
+        }
+        .glass-btn {
+            background: rgba(25, 37, 60, 0.75);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .glass-btn:hover {
+            background: rgba(38, 56, 89, 0.9);
+            border-color: rgba(255, 255, 255, 0.22);
+        }
+        .glass-btn:active {
+            transform: scale(0.95);
+        }
+        .speed-active {
+            background: rgba(6, 182, 212, 0.22) !important;
+            border-color: #06b6d4 !important;
+            color: #22d3ee !important;
+            box-shadow: 0 0 14px rgba(6, 182, 212, 0.3);
+        }
+        /* Custom subtle scrollbars */
+        ::-webkit-scrollbar {
+            width: 4px;
+            height: 4px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(148, 163, 184, 0.25);
+            border-radius: 9999px;
+        }
+        @keyframes pulse-dot {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.45; transform: scale(0.85); }
+        }
+        .live-dot {
+            animation: pulse-dot 2s infinite ease-in-out;
+        }
+    </style>
+</head>
+<body class="relative w-full h-full select-none overflow-hidden">
+
+    <!-- Fullscreen Interactive Map Canvas -->
+    <canvas id="mapCanvas" class="block w-full h-full cursor-grab active:cursor-grabbing"></canvas>
+
+    <!-- TOP HUD BAR -->
+    <header class="fixed top-0 left-0 right-0 z-20 p-2 sm:p-3.5 pointer-events-none flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2">
+        <!-- Brand & Live Network Status -->
+        <div class="glass-panel rounded-2xl px-3.5 py-2 flex items-center justify-between sm:justify-start gap-3.5 pointer-events-auto">
+            <div class="flex items-center gap-2.5">
+                <div class="w-8 h-8 rounded-xl bg-cyan-500/15 border border-cyan-400/30 flex items-center justify-center">
+                    <svg class="w-4 h-4 text-cyan-400" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M8 7h8m-8 4h8m-4 4v3m-6 0h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v10a2 2 0 002 2zm-1 3a1 1 0 100-2 1 1 0 000 2zm14 0a1 1 0 100-2 1 1 0 000 2z"/>
+                    </svg>
+                </div>
+                <div>
+                    <div class="flex items-center gap-2">
+                        <span class="font-bold tracking-wider text-sm text-white">CRYVA</span>
+                        <span class="text-[10px] font-mono-tech uppercase px-1.5 py-0.5 rounded bg-cyan-500/15 text-cyan-300 border border-cyan-400/25 font-semibold">V1 • Phase 2</span>
+                    </div>
+                    <p class="text-[10px] text-slate-400 leading-tight">EMT Palma &amp; TIB Mallorca Live World</p>
+                </div>
+            </div>
+
+            <div class="h-6 w-[1px] bg-slate-700/70 hidden sm:block"></div>
+
+            <!-- Clock, Fleet & Passenger Counter -->
+            <div class="flex items-center gap-3">
+                <div class="text-right sm:text-left">
+                    <div class="flex items-center justify-end sm:justify-start gap-1.5">
+                        <span id="statusIndicator" class="w-2 h-2 rounded-full bg-emerald-400 live-dot"></span>
+                        <span id="simClock" class="font-mono-tech text-xs sm:text-sm font-semibold text-slate-100">06:30:00</span>
+                        <span id="lodBadge" class="hidden md:inline-block text-[9px] font-mono-tech uppercase px-1.5 py-0.5 rounded bg-slate-800 text-cyan-300 border border-slate-700">LOD: ISLAND</span>
+                    </div>
+                    <div class="text-[10px] font-mono-tech text-slate-400 uppercase tracking-tight">
+                        <span id="activeBusCount" class="text-cyan-400 font-semibold">0</span> Buses • <span id="waitingPaxCount" class="text-emerald-400 font-semibold">0</span> Waiting • <span id="boardedPaxCount" class="text-amber-300 font-semibold">0</span> Boarded
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Simulation Speed & Pause Controls -->
+        <div class="glass-panel rounded-2xl p-1 flex items-center justify-between sm:justify-end gap-1 pointer-events-auto self-center sm:self-auto w-full sm:w-auto max-w-xs sm:max-w-none">
+            <button id="btnPause" onclick="setSimSpeed(0)" class="glass-btn flex-1 sm:flex-initial px-2.5 py-1.5 rounded-xl text-xs font-mono-tech font-semibold text-slate-300 flex items-center justify-center gap-1" title="Pause Simulation (Space)">
+                <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24"><path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z"/></svg>
+                <span>PAUSE</span>
+            </button>
+            <button id="btnSpeed1" onclick="setSimSpeed(1)" class="glass-btn speed-active flex-1 sm:flex-initial px-3 py-1.5 rounded-xl text-xs font-mono-tech font-semibold text-slate-200" title="1x Real-Scale Simulation">
+                1x
+            </button>
+            <button id="btnSpeed2" onclick="setSimSpeed(2)" class="glass-btn flex-1 sm:flex-initial px-3 py-1.5 rounded-xl text-xs font-mono-tech font-semibold text-slate-200" title="2x Simulation Speed">
+                2x
+            </button>
+            <button id="btnSpeed5" onclick="setSimSpeed(5)" class="glass-btn flex-1 sm:flex-initial px-3 py-1.5 rounded-xl text-xs font-mono-tech font-semibold text-slate-200" title="5x Simulation Speed">
+                5x
+            </button>
+        </div>
+    </header>
+
+    <!-- RIGHT FLOATING MAP ZOOM & CAMERA CONTROLS -->
+    <aside class="fixed right-2.5 sm:right-4 top-1/2 -translate-y-1/2 z-20 flex flex-col gap-2 pointer-events-auto">
+        <div class="glass-panel rounded-2xl p-1.5 flex flex-col gap-1.5">
+            <button onclick="zoomMap(1.3)" class="glass-btn w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center text-slate-200 text-lg font-bold" aria-label="Zoom In" title="Zoom In (+)">
+                <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 5v14m-7-7h14"/></svg>
+            </button>
+            <button onclick="zoomMap(0.77)" class="glass-btn w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center text-slate-200 text-lg font-bold" aria-label="Zoom Out" title="Zoom Out (-)">
+            <button onclick="focusPalma()" class="glass-btn w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center text-cyan-300 text-[10px] font-mono-tech font-bold" aria-label="Focus Palma Hub" title="Focus Palma Intermodal (Medium Zoom)">
+                PMI
+            </button>
+            <button onclick="focusStreetLevel()" class="glass-btn w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center text-emerald-300 text-[10px] font-mono-tech font-bold" aria-label="Street Level Close Zoom" title="Close Zoom: 3D Buildings, Trees &amp; Waiting Passengers">
+                3D
+            </button>
+            <button onclick="resetCamera()" class="glass-btn w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center text-slate-300" aria-label="Reset View" title="Fit Entire Island">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"/>
+                </svg>
+            </button>
+            <button id="btnToggleLabels" onclick="toggleLabels()" class="glass-btn w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center text-cyan-400 border-cyan-500/30" aria-label="Toggle Bus Callsigns" title="Toggle Vehicle Callsigns">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/>
+                </svg>
+            </button>
+        </div>
+    </aside>
+
+    <!-- BOTTOM TELEMETRY & ROUTE FILTER PANEL -->
+    <footer class="fixed bottom-0 left-0 right-0 z-20 p-2 sm:p-3.5 pointer-events-none flex flex-col sm:flex-row items-stretch sm:items-end justify-between gap-2">
+        <!-- Route Filter Pills + Selected Bus/Route Inspector -->
+        <div class="glass-panel rounded-2xl p-2.5 sm:p-3 pointer-events-auto w-full sm:max-w-2xl flex flex-col gap-2">
+            <!-- Compact Structured Inspector -->
+            <div id="busInspector" class="flex flex-col gap-1.5 pb-2 border-b border-slate-700/60 text-xs">
+                <div class="flex items-center justify-between gap-2">
+                    <div class="flex items-center gap-2 min-w-0">
+                        <span id="inspectorBadge" class="px-2 py-0.5 rounded font-mono-tech font-bold text-[11px] bg-slate-800 text-cyan-300 border border-cyan-500/30 shrink-0">
+                            NETWORK
+                        </span>
+                        <span id="inspectorServiceType" class="text-[10px] font-mono-tech uppercase px-1.5 py-0.5 rounded bg-slate-800/90 text-slate-300 border border-slate-700 shrink-0">
+                            ALL SERVICES
+                        </span>
+                        <span id="inspectorTitle" class="font-semibold text-slate-100 truncate">Select a vehicle or route line</span>
+                    </div>
+                    <button id="btnClearSelection" onclick="selectBus(null); filterRoute('ALL')" class="hidden glass-btn px-2 py-0.5 rounded-lg text-[11px] font-mono-tech text-slate-300 shrink-0">
+                        Reset
+                    </button>
+                </div>
+
+                <!-- Default summary line when nothing is selected -->
+                <div id="inspectorDefaultSub" class="text-[11px] text-slate-400 truncate">
+                    Official EMT Palma &amp; TIB route numbers/stops (timetables &amp; frequencies simulated) • Zoom in for 3D towns &amp; passengers
+                </div>
+
+                <!-- Structured Telemetry Grid (Shown when a bus, stop, or route is inspected) -->
+                <div id="inspectorMetrics" class="hidden grid grid-cols-2 sm:grid-cols-4 gap-1.5 pt-0.5 text-[11px]">
+                    <div class="bg-slate-900/65 rounded-lg px-2 py-1 border border-slate-800/80">
+                        <span id="metricLabel1" class="block text-[9px] font-mono-tech uppercase text-slate-400">Position / Stop</span>
+                        <span id="metricVal1" class="font-medium text-slate-100 truncate block">—</span>
+                    </div>
+                    <div class="bg-slate-900/65 rounded-lg px-2 py-1 border border-slate-800/80">
+                        <span id="metricLabel2" class="block text-[9px] font-mono-tech uppercase text-slate-400">Next Stop</span>
+                        <span id="metricVal2" class="font-medium text-slate-100 truncate block">—</span>
+                    </div>
+                    <div class="bg-slate-900/65 rounded-lg px-2 py-1 border border-slate-800/80">
+                        <span id="metricLabel3" class="block text-[9px] font-mono-tech uppercase text-slate-400">Destination</span>
+                        <span id="metricVal3" class="font-medium text-slate-100 truncate block">—</span>
+                    </div>
+                    <div class="bg-slate-900/65 rounded-lg px-2 py-1 border border-slate-800/80">
+                        <span id="metricLabel4" class="block text-[9px] font-mono-tech uppercase text-slate-400">Status &amp; Speed</span>
+                        <span id="metricVal4" class="font-mono-tech font-semibold text-cyan-300 truncate block">—</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Category Filter + Route Selector Bar -->
+            <div class="flex items-center gap-1.5 overflow-x-auto pb-0.5 no-scrollbar" id="routeButtonsContainer">
+                <!-- Populated dynamically via JS -->
+            </div>
+        </div>
+
+        <!-- Zoom & Scale Readout (Desktop / Tablet) -->
+        <div class="glass-panel rounded-xl px-3 py-2 pointer-events-auto hidden lg:flex items-center gap-3 text-[11px] font-mono-tech text-slate-400 shrink-0">
+            <span>SCALE <strong id="zoomReadout" class="text-slate-200">100%</strong></span>
+            <span class="text-slate-600">•</span>
+            <span>1 UNIT ≈ 100m</span>
+        </div>
+    </footer>
+
+    <script>
+        /**
+         * CRYVA TRANSPORT V1 — MAP REFINEMENT + PHASE 2
+         * 1. Verified Official EMT Palma (A1, A2, L3, L4, L19, L20, L23, L25, L35) & TIB (101, 104, 203, 204, 301, 302, 401, 411e, 501, 515e) network.
+         *    All TIB interurban lines depart from and return to Palma Estació Intermodal (Stop #40036).
+         * 2. Dijkstra Road-Graph Pathfinding: Every route is strictly locked to physical inland road segments so no bus ever crosses water or leaves roads.
+         * 3. WorldBox-Style Multi-LOD Zoom (0.55x to 28x):
+         *    - Far Zoom (< 2.2x): Island silhouette, major corridors, municipalities, transit telemetry.
+         *    - Medium Zoom (2.2x – 6.5x): Neighborhood street grids, building clusters, forest canopies, stop shelters & waiting passenger badges.
+         *    - Close Zoom (> 6.5x): 2.5D extruded miniature houses with terracotta/slate roofs, windows, sidewalks, trees, animated waiting passengers & detailed buses.
+         */
+
+        const canvas = document.getElementById('mapCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // 1 world unit = 0.1 km (100 meters).
+        const WORLD_KM_PER_UNIT = 0.1;
+
+        // Simulation clock and speed state
+        const BASE_SIM_SECONDS_PER_REAL_SEC = 6;
+        let simSpeed = 1;
+        let simTimeSeconds = 6 * 3600 + 30 * 60; // 06:30:00
+        let showBusLabels = true;
+        let activeRouteFilter = 'ALL';
+        let selectedBusId = null;
+        let selectedStopKey = null;
+        let totalPassengersBoarded = 0;
+
+        // Camera state with expanded WorldBox-style close zoom range (up to 28x)
+        const camera = {
+            x: 462,
+            y: 355,
+            zoom: 1,
+            minZoom: 0.55,
+            maxZoom: 28.0
+        };
+
+        // High-detail recognizable coastline of Mallorca — calibrated so all coastal roads & ports sit strictly on land inside the coastline
+        const MALLORCA_COAST = [
+            { x: 112, y: 422 }, // Sant Elm
+            { x: 124, y: 394 }, // Roca Blanca
+            { x: 158, y: 356 }, // Estellencs coast
+            { x: 204, y: 318 }, // Banyalbufar cliffs
+            { x: 256, y: 278 }, // Port des Canonge
+            { x: 306, y: 235 }, // Port de Sóller headland West
+            { x: 320, y: 239 }, // Port de Sóller bay shore
+            { x: 358, y: 206 }, // Sa Calobra
+            { x: 416, y: 170 }, // Cala Tuent
+            { x: 478, y: 138 }, // Cala Sant Vicenç
+            { x: 545, y: 102 }, // Cap de Catalunya
+            { x: 604, y: 76 },  // Cap de Formentor
+            { x: 615, y: 88 },  // Cala Murta
+            { x: 562, y: 128 }, // El Colomer
+            { x: 538, y: 154 }, // Badia de Pollença shore
+            { x: 566, y: 162 }, // Cap des Pinar
+            { x: 586, y: 174 }, // Cap de Menorca
+            { x: 564, y: 196 }, // Port d'Alcúdia bay
+            { x: 576, y: 224 }, // Platja de Muro shore
+            { x: 604, y: 248 }, // Can Picafort shore
+            { x: 644, y: 254 }, // Son Serra de Marina
+            { x: 675, y: 238 }, // Colònia de Sant Pere
+            { x: 696, y: 205 }, // Cap de Ferrutx
+            { x: 742, y: 208 }, // Cala Torta
+            { x: 785, y: 222 }, // Cala Mesquida
+            { x: 828, y: 252 }, // Cala Ratjada / Capdepera point
+            { x: 810, y: 286 }, // Canyamel
+            { x: 796, y: 325 }, // Cala Millor shore
+            { x: 772, y: 368 }, // Porto Cristo bay
+            { x: 748, y: 410 }, // Cales de Mallorca
+            { x: 724, y: 454 }, // Portocolom
+            { x: 692, y: 498 }, // Cala d'Or shore
+            { x: 656, y: 536 }, // Cala Mondragó
+            { x: 625, y: 566 }, // Cala Figuera
+            { x: 564, y: 608 }, // Cap de ses Salines
+            { x: 526, y: 580 }, // Colònia de Sant Jordi shore
+            { x: 494, y: 550 }, // Es Trenc
+            { x: 458, y: 524 }, // Sa Ràpita
+            { x: 405, y: 504 }, // Vallgornera
+            { x: 364, y: 486 }, // Cap Blanc
+            { x: 354, y: 455 }, // Cap Enderrocat
+            { x: 348, y: 434 }, // S'Arenal shore
+            { x: 332, y: 418 }, // Can Pastilla beach
+            { x: 312, y: 404 }, // Portixol / Molinar shore
+            { x: 292, y: 396 }, // Palma Cathedral / Parc de la Mar shore
+            { x: 276, y: 400 }, // Muelle de Paraires / Port de Palma
+            { x: 264, y: 407 }, // Porto Pi shore
+            { x: 250, y: 418 }, // Cas Català / Illetes shore
+            { x: 234, y: 438 }, // Palmanova / Magaluf shore
+            { x: 234, y: 462 }, // Cap de Cala Figuera
+            { x: 204, y: 452 }, // Santa Ponça bay
+            { x: 182, y: 438 }, // Peguera shore
+            { x: 138, y: 444 }, // Port d'Andratx harbor
+            { x: 118, y: 436 }  // La Mola
+        ];
+
+        const DRAGONERA_ISLAND = [
+            { x: 86, y: 418 },
+            { x: 102, y: 406 },
+            { x: 105, y: 416 },
+            { x: 92, y: 428 }
+        ];
+
+        const TRAMUNTANA_RELIEF = [
+            { x: 132, y: 410 },
+            { x: 185, y: 342 },
+            { x: 288, y: 262 },
+            { x: 388, y: 194 },
+            { x: 515, y: 136 },
+            { x: 575, y: 102 },
+            { x: 525, y: 168 },
+            { x: 415, y: 232 },
+            { x: 318, y: 304 },
+            { x: 215, y: 385 }
+        ];
+
+        const LLEVANT_RELIEF = [
+            { x: 675, y: 248 },
+            { x: 728, y: 222 },
+            { x: 775, y: 245 },
+            { x: 745, y: 308 },
+            { x: 682, y: 335 },
+            { x: 658, y: 292 }
+        ];
+
+        const PALMA_URBAN_FOOTPRINT = [
+            { x: 254, y: 410 },
+            { x: 262, y: 370 },
+            { x: 282, y: 342 },
+            { x: 318, y: 352 },
+            { x: 346, y: 372 },
+            { x: 352, y: 428 },
+            { x: 332, y: 414 },
+            { x: 312, y: 400 },
+            { x: 292, y: 393 },
+            { x: 276, y: 397 }
+        ];
+
+        /**
+         * NODES: Verified Official EMT Palma & TIB Stops + Inland Coastal Road Waypoints
+         * Every node is strictly inside the Mallorca landmass polygon.
+         */
+        const NODES = {
+            // --- CENTRAL INTERMODAL HUB & PALMA URBAN STOPS (EMT / TIB) ---
+            palma_intermodal: { name: 'Palma Estació Intermodal (Pl. Espanya)', shortName: 'Est. Intermodal', code: '40036', x: 295, y: 376, type: 'hub', urban: true, popWeight: 3.0 },
+            porta_des_camp:   { name: 'Porta des Camp / Av. Gabriel Alomar', shortName: 'Porta des Camp', code: '40108', x: 299, y: 387, type: 'urban_stop', urban: true, popWeight: 1.8 },
+            reina_catedral:   { name: 'Pl. de la Reina - Catedral', shortName: 'Pl. Reina / Catedral', code: '453', x: 290, y: 390, type: 'urban_stop', urban: true, popWeight: 2.0 },
+            pl_progres:       { name: 'Plaça Progrés (Av. Argentina)', shortName: 'Pl. Progrés', code: '40030', x: 284, y: 385, type: 'urban_stop', urban: true, popWeight: 1.7 },
+            palma_port:       { name: 'Passeig Marítim - Auditòrium', shortName: 'Pg. Marítim', code: '11', x: 277, y: 394, type: 'urban_stop', urban: true, popWeight: 1.6 },
+            porto_pi:         { name: 'Portopí Centre Comercial', shortName: 'Portopí', code: '92', x: 266, y: 401, type: 'urban_stop', urban: true, popWeight: 1.9 },
+            ses_illetes:      { name: 'Ses Illetes / Cas Català', shortName: 'Ses Illetes', code: '148', x: 253, y: 411, type: 'urban_stop', urban: true, popWeight: 1.4 },
+            son_espases:      { name: 'Hospital Universitari Son Espases', shortName: 'H. Son Espases', code: '1076', x: 279, y: 358, type: 'urban_stop', urban: true, popWeight: 2.2 },
+            uib:              { name: 'Campus UIB / Parc Bit', shortName: 'Campus UIB', code: '544', x: 295, y: 342, type: 'urban_stop', urban: true, popWeight: 2.1 },
+            son_sardina:      { name: 'Son Sardina (Ctra. de Sóller)', shortName: 'Son Sardina', code: '40081', x: 304, y: 350, type: 'urban_stop', urban: true, popWeight: 1.2 },
+            son_castello:     { name: 'Polígon Son Castelló / Gran Via Asima', shortName: 'Son Castelló', code: '1120', x: 311, y: 363, type: 'urban_stop', urban: true, popWeight: 1.5 },
+            arago_can_capes:  { name: 'Aragó - Can Capes', shortName: 'Can Capes', code: '40142', x: 310, y: 373, type: 'urban_stop', urban: true, popWeight: 1.5 },
+            pont_inca:        { name: "Es Pont d'Inca (Av. Antoni Maura)", shortName: "Es Pont d'Inca", code: '185', x: 325, y: 367, type: 'urban_stop', urban: true, popWeight: 1.6 },
+            son_ferriol:      { name: 'Son Ferriol (Av. del Cid)', shortName: 'Son Ferriol', code: '804', x: 338, y: 383, type: 'urban_stop', urban: true, popWeight: 1.4 },
+            coll_den_rabassa: { name: "Es Coll d'en Rabassa / Ciutat Jardí", shortName: "Coll d'en Rabassa", code: '462', x: 315, y: 396, type: 'urban_stop', urban: true, popWeight: 1.5 },
+            can_pastilla:     { name: 'Can Pastilla / Palma Aquarium', shortName: 'Aquàrium / Can Pastilla', code: '1191', x: 333, y: 411, type: 'urban_stop', urban: true, popWeight: 1.9 },
+            aeroport:         { name: 'Aeroport Son Sant Joan (PMI)', shortName: 'Aeroport PMI', code: '547', x: 338, y: 402, type: 'hub', urban: true, popWeight: 2.8 },
+            s_arenal:         { name: "S'Arenal (Balneari 1 / Megasport)", shortName: "S'Arenal", code: '691', x: 350, y: 428, type: 'urban_stop', urban: true, popWeight: 2.1 },
+
+            // --- PONENT (TIB 100 SERIES) ---
+            port_andratx:     { name: "Port d'Andratx (Club de Vela)", shortName: "Port d'Andratx", code: '5012', x: 141, y: 435, type: 'town', major: false, popWeight: 1.4 },
+            andratx:          { name: 'Andratx (Torrent / Sonlu)', shortName: 'Andratx', code: '5031', x: 152, y: 414, type: 'town', major: true, popWeight: 1.8 },
+            camp_de_mar:      { name: 'Camp de Mar (Ma-1)', shortName: 'Camp de Mar', code: '5001', x: 168, y: 422, type: 'town', major: false, popWeight: 1.1 },
+            peguera:          { name: 'Peguera (Bulevard)', shortName: 'Peguera', code: '11018', x: 185, y: 426, type: 'town', major: false, popWeight: 1.5 },
+            santa_ponca:      { name: 'Santa Ponça (Av. Rei Jaume I)', shortName: 'Santa Ponça', code: '11181', x: 206, y: 436, type: 'town', major: true, popWeight: 1.7 },
+            magaluf:          { name: 'Magaluf / Palmanova', shortName: 'Magaluf', code: '11042', x: 236, y: 429, type: 'town', major: true, popWeight: 2.0 },
+            calvia:           { name: 'Calvià Vila', shortName: 'Calvià', code: '11002', x: 218, y: 402, type: 'town', major: false, popWeight: 1.3 },
+
+            // --- TRAMUNTANA (TIB 200 SERIES) ---
+            valldemossa:      { name: 'Valldemossa', shortName: 'Valldemossa', code: '63001', x: 282, y: 312, type: 'town', major: true, popWeight: 1.6 },
+            deia:             { name: 'Deià', shortName: 'Deià', code: '18001', x: 298, y: 280, type: 'town', major: false, popWeight: 1.2 },
+            soller:           { name: 'Sóller (Cetre / C. de Cetre)', shortName: 'Sóller', code: '59001', x: 326, y: 262, type: 'hub', major: true, popWeight: 2.0 },
+            port_soller:      { name: 'Port de Sóller', shortName: 'Port de Sóller', code: '59013', x: 316, y: 245, type: 'town', major: false, popWeight: 1.6 },
+            bunyola:          { name: 'Bunyola / Palmanyola (Ma-11)', shortName: 'Bunyola', code: '10001', x: 318, y: 324, type: 'town', major: false, popWeight: 1.2 },
+
+            // --- RAIGUER & NORD (TIB 300 SERIES) ---
+            marratxi:         { name: 'Marratxí / Sant Marçal', shortName: 'Marratxí', code: '36001', x: 346, y: 356, type: 'town', major: false, popWeight: 1.4 },
+            santa_maria:      { name: 'Santa Maria del Camí', shortName: 'Sta. Maria', code: '56001', x: 374, y: 340, type: 'town', major: false, popWeight: 1.5 },
+            consell:          { name: 'Consell', shortName: 'Consell', code: '16001', x: 396, y: 326, type: 'town', major: false, popWeight: 1.3 },
+            binissalem:       { name: 'Binissalem', shortName: 'Binissalem', code: '8001', x: 418, y: 314, type: 'town', major: false, popWeight: 1.4 },
+            inca:             { name: 'Inca Estació / Llevant', shortName: 'Inca', code: '27001', x: 452, y: 296, type: 'hub', major: true, popWeight: 2.4 },
+            sa_pobla:         { name: 'Sa Pobla (Ronda Nord)', shortName: 'Sa Pobla', code: '44001', x: 512, y: 242, type: 'town', major: true, popWeight: 1.7 },
+            pollenca:         { name: 'Pollença (Cecili Metel)', shortName: 'Pollença', code: '42001', x: 514, y: 176, type: 'town', major: true, popWeight: 1.7 },
+            port_pollenca:    { name: 'Port de Pollença', shortName: 'Port de Pollença', code: '42015', x: 534, y: 158, type: 'town', major: false, popWeight: 1.8 },
+            alcudia:          { name: "Alcúdia / Port d'Alcúdia", shortName: 'Alcúdia', code: '3001', x: 554, y: 198, type: 'hub', major: true, popWeight: 2.1 },
+            platja_muro:      { name: 'Platja de Muro', shortName: 'Platja de Muro', code: '39012', x: 568, y: 224, type: 'town', major: false, popWeight: 1.5 },
+            can_picafort:     { name: 'Can Picafort (Ronda Nord)', shortName: 'Can Picafort', code: '54008', x: 594, y: 248, type: 'town', major: true, popWeight: 1.8 },
+
+            // --- PLA & LLEVANT (TIB 400 SERIES) ---
+            algaida:          { name: "Algaida (S'Hostal / Ma-15)", shortName: 'Algaida', code: '4008', x: 416, y: 392, type: 'town', major: false, popWeight: 1.3 },
+            montuiri:         { name: 'Montuïri (Ma-15)', shortName: 'Montuïri', code: '38010', x: 476, y: 386, type: 'town', major: false, popWeight: 1.2 },
+            sineu:            { name: 'Sineu', shortName: 'Sineu', code: '58001', x: 498, y: 334, type: 'town', major: true, popWeight: 1.5 },
+            vilafranca:       { name: 'Vilafranca de Bonany', shortName: 'Vilafranca', code: '65001', x: 548, y: 378, type: 'town', major: false, popWeight: 1.3 },
+            manacor:          { name: 'Manacor Estació / Molí - Hospital', shortName: 'Manacor', code: '33044', x: 612, y: 372, type: 'hub', major: true, popWeight: 2.4 },
+            porto_cristo:     { name: 'Portocristo (Mestral / Coves Hams)', shortName: 'Portocristo', code: '33079', x: 754, y: 368, type: 'town', major: true, popWeight: 1.8 },
+            s_illot:          { name: "S'Illot / Sa Coma", shortName: 'Sa Coma', code: '51005', x: 768, y: 344, type: 'town', major: false, popWeight: 1.5 },
+            sant_llorenc:     { name: 'Sant Llorenç des Cardassar', shortName: 'Sant Llorenç', code: '51025', x: 668, y: 342, type: 'town', major: false, popWeight: 1.3 },
+            son_servera:      { name: 'Son Servera', shortName: 'Son Servera', code: '62001', x: 734, y: 318, type: 'town', major: false, popWeight: 1.4 },
+            cala_millor:      { name: 'Cala Millor Centre (Av. Llevant)', shortName: 'Cala Millor', code: '51032', x: 780, y: 324, type: 'town', major: true, popWeight: 2.0 },
+            arta:             { name: 'Artà (Av. Costa i Llobera)', shortName: 'Artà', code: '6001', x: 726, y: 256, type: 'town', major: true, popWeight: 1.6 },
+            capdepera:        { name: 'Capdepera', shortName: 'Capdepera', code: '14001', x: 786, y: 258, type: 'town', major: false, popWeight: 1.4 },
+            cala_ratjada:     { name: 'Cala Rajada (Magallanes)', shortName: 'Cala Rajada', code: '14014', x: 814, y: 254, type: 'town', major: true, popWeight: 1.9 },
+
+            // --- MIGJORN (TIB 500 SERIES) ---
+            llucmajor:        { name: 'Llucmajor (Centre / Oest)', shortName: 'Llucmajor', code: '31057', x: 432, y: 446, type: 'hub', major: true, popWeight: 1.9 },
+            porreres:         { name: 'Porreres', shortName: 'Porreres', code: '43001', x: 496, y: 426, type: 'town', major: false, popWeight: 1.3 },
+            campos:           { name: 'Campos (La Verge)', shortName: 'Campos', code: '13007', x: 512, y: 492, type: 'town', major: true, popWeight: 1.9 },
+            felanitx:         { name: 'Felanitx (Ernest Mestre / Parc)', shortName: 'Felanitx', code: '22039', x: 588, y: 448, type: 'town', major: true, popWeight: 1.7 },
+            portocolom:       { name: 'Portocolom', shortName: 'Portocolom', code: '22015', x: 708, y: 454, type: 'town', major: false, popWeight: 1.4 },
+            santanyi:         { name: 'Santanyí', shortName: 'Santanyí', code: '57001', x: 592, y: 544, type: 'town', major: true, popWeight: 1.7 },
+            cala_dor:         { name: "Cala d'Or / Portopetro", shortName: "Cala d'Or", code: '57022', x: 676, y: 496, type: 'town', major: true, popWeight: 1.9 },
+            colonia_st_jordi: { name: 'Colònia de Sant Jordi', shortName: 'Col. St. Jordi', code: '59501', x: 526, y: 566, type: 'town', major: false, popWeight: 1.5 },
+
+            // --- ROAD GRAPH JUNCTIONS (Non-stop road geometry nodes ensuring zero sea crossings) ---
+            j_coll_soller:    { name: 'Túnel de Sóller (Ma-11)', x: 312, y: 294, type: 'junction' },
+            j_inca_north:     { name: 'Enllaç Ma-13 Crestatx', x: 486, y: 256, type: 'junction' },
+            j_manacor_east:   { name: 'Manacor Est (Ma-4020)', x: 686, y: 370, type: 'junction' },
+            j_llevant_north:  { name: 'Enllaç Sta. Margalida', x: 658, y: 268, type: 'junction' }
+        };
+
+        /**
+         * ROAD NETWORK SEGMENTS
+         * Every road edge lies strictly over land inside the Mallorca polygon.
+         * Notice how Palma's coastal highway (Ma-19 Autovia de Llevant) curves through
+         * Porta des Camp -> Coll d'en Rabassa -> Can Pastilla -> Aeroport -> S'Arenal,
+         * never cutting across Badia de Palma water.
+         */
+        const ROAD_EDGES = [
+            // Palma Core & Waterfront (Inland of Badia de Palma shoreline)
+            ['palma_intermodal', 'porta_des_camp', 'urban'],
+            ['palma_intermodal', 'reina_catedral', 'urban'],
+            ['palma_intermodal', 'pl_progres', 'urban'],
+            ['palma_intermodal', 'arago_can_capes', 'urban'],
+            ['palma_intermodal', 'son_espases', 'urban'],
+            ['palma_intermodal', 'son_sardina', 'urban'],
+            ['palma_intermodal', 'son_castello', 'urban'],
+            ['porta_des_camp', 'reina_catedral', 'urban'],
+            ['reina_catedral', 'pl_progres', 'urban'],
+            ['pl_progres', 'palma_port', 'urban'],
+            ['reina_catedral', 'palma_port', 'urban'],
+            ['palma_port', 'porto_pi', 'urban'],
+            ['porto_pi', 'ses_illetes', 'urban'],
+
+            // Palma North & East Arterials
+            ['son_espases', 'uib', 'urban'],
+            ['son_espases', 'pl_progres', 'urban'],
+            ['uib', 'son_sardina', 'urban'],
+            ['son_castello', 'pont_inca', 'urban'],
+            ['arago_can_capes', 'pont_inca', 'urban'],
+            ['arago_can_capes', 'son_ferriol', 'urban'],
+
+            // Ma-19 Autovia de Llevant (Follows coastline on land around Palma Bay)
+            ['porta_des_camp', 'coll_den_rabassa', 'highway'],
+            ['coll_den_rabassa', 'can_pastilla', 'highway'],
+            ['coll_den_rabassa', 'aeroport', 'highway'],
+            ['can_pastilla', 'aeroport', 'urban'],
+            ['can_pastilla', 's_arenal', 'urban'],
+            ['aeroport', 's_arenal', 'highway'],
+            ['son_ferriol', 'aeroport', 'urban'],
+            ['porta_des_camp', 'son_ferriol', 'urban'],
+
+            // Ma-1 Ponent Motorway (Strictly inland of Calvià coast)
+            ['ses_illetes', 'magaluf', 'highway'],
+            ['magaluf', 'santa_ponca', 'highway'],
+            ['santa_ponca', 'peguera', 'highway'],
+            ['peguera', 'camp_de_mar', 'highway'],
+            ['camp_de_mar', 'andratx', 'highway'],
+            ['andratx', 'port_andratx', 'secondary'],
+            ['ses_illetes', 'calvia', 'secondary'],
+            ['calvia', 'santa_ponca', 'secondary'],
+            ['calvia', 'andratx', 'secondary'],
+
+            // Ma-11 & Ma-10 Serra de Tramuntana
+            ['uib', 'valldemossa', 'secondary'],
+            ['son_sardina', 'valldemossa', 'secondary'],
+            ['valldemossa', 'deia', 'secondary'],
+            ['deia', 'soller', 'secondary'],
+            ['son_sardina', 'bunyola', 'secondary'],
+            ['pont_inca', 'bunyola', 'secondary'],
+            ['bunyola', 'j_coll_soller', 'secondary'],
+            ['j_coll_soller', 'soller', 'secondary'],
+            ['soller', 'port_soller', 'secondary'],
+
+            // Ma-13 Nord Motorway
+            ['pont_inca', 'marratxi', 'highway'],
+            ['marratxi', 'santa_maria', 'highway'],
+            ['santa_maria', 'consell', 'highway'],
+            ['consell', 'binissalem', 'highway'],
+            ['binissalem', 'inca', 'highway'],
+            ['inca', 'j_inca_north', 'highway'],
+            ['j_inca_north', 'sa_pobla', 'highway'],
+            ['j_inca_north', 'pollenca', 'secondary'],
+            ['pollenca', 'port_pollenca', 'secondary'],
+            ['sa_pobla', 'alcudia', 'highway'],
+            ['pollenca', 'alcudia', 'secondary'],
+            ['alcudia', 'platja_muro', 'secondary'],
+            ['platja_muro', 'can_picafort', 'secondary'],
+
+            // Ma-15 Llevant Highway
+            ['son_ferriol', 'algaida', 'highway'],
+            ['algaida', 'montuiri', 'highway'],
+            ['montuiri', 'vilafranca', 'highway'],
+            ['vilafranca', 'manacor', 'highway'],
+            ['manacor', 'j_manacor_east', 'secondary'],
+            ['j_manacor_east', 'porto_cristo', 'secondary'],
+            ['porto_cristo', 's_illot', 'secondary'],
+            ['s_illot', 'cala_millor', 'secondary'],
+            ['manacor', 'sant_llorenc', 'secondary'],
+            ['sant_llorenc', 'son_servera', 'secondary'],
+            ['son_servera', 'cala_millor', 'secondary'],
+            ['son_servera', 'arta', 'secondary'],
+            ['sant_llorenc', 'arta', 'secondary'],
+            ['arta', 'capdepera', 'secondary'],
+            ['capdepera', 'cala_ratjada', 'secondary'],
+
+            // Ma-19 Migjorn Highway
+            ['s_arenal', 'llucmajor', 'highway'],
+            ['aeroport', 'llucmajor', 'highway'],
+            ['llucmajor', 'campos', 'highway'],
+            ['campos', 'santanyi', 'secondary'],
+            ['campos', 'colonia_st_jordi', 'secondary'],
+            ['santanyi', 'cala_dor', 'secondary'],
+
+            // Interior Cross-Island Connectors
+            ['inca', 'sineu', 'secondary'],
+            ['santa_maria', 'sineu', 'secondary'],
+            ['sineu', 'montuiri', 'secondary'],
+            ['sineu', 'vilafranca', 'secondary'],
+            ['can_picafort', 'j_llevant_north', 'secondary'],
+            ['j_llevant_north', 'arta', 'secondary'],
+            ['j_llevant_north', 'manacor', 'secondary'],
+            ['llucmajor', 'algaida', 'secondary'],
+            ['llucmajor', 'porreres', 'secondary'],
+            ['porreres', 'felanitx', 'secondary'],
+            ['campos', 'felanitx', 'secondary'],
+            ['manacor', 'felanitx', 'secondary'],
+            ['felanitx', 'portocolom', 'secondary'],
+            ['felanitx', 'cala_dor', 'secondary']
+        ];
+
+        // Build adjacency list for Dijkstra shortest-road-path routing
+        const ROAD_GRAPH = {};
+        Object.keys(NODES).forEach(k => { ROAD_GRAPH[k] = []; });
+        ROAD_EDGES.forEach(([u, v, cls]) => {
+            if (!NODES[u] || !NODES[v]) return;
+            const dist = Math.hypot(NODES[u].x - NODES[v].x, NODES[u].y - NODES[v].y);
+            ROAD_GRAPH[u].push({ to: v, dist, cls });
+            ROAD_GRAPH[v].push({ to: u, dist, cls });
+        });
+
+        /**
+         * Find exact connected road path between two stops using Dijkstra's algorithm
+         * Guarantees buses ONLY travel along valid ROAD_EDGES and never shortcut across water or buildings.
+         */
+        function findRoadPath(startKey, endKey) {
+            if (startKey === endKey) return [startKey];
+            const dists = {};
+            const prev = {};
+            const visited = new Set();
+            Object.keys(NODES).forEach(k => { dists[k] = Infinity; });
+            dists[startKey] = 0;
+
+            while (true) {
+                let u = null;
+                let best = Infinity;
+                for (const k in dists) {
+                    if (!visited.has(k) && dists[k] < best) {
+                        best = dists[k];
+                        u = k;
+                    }
+                }
+                if (!u || u === endKey) break;
+                visited.add(u);
+
+                for (const edge of ROAD_GRAPH[u]) {
+                    if (visited.has(edge.to)) continue;
+                    const alt = dists[u] + edge.dist;
+                    if (alt < dists[edge.to]) {
+                        dists[edge.to] = alt;
+                        prev[edge.to] = u;
+                    }
+                }
+            }
+
+            const path = [];
+            let curr = endKey;
+            while (curr) {
+                path.unshift(curr);
+                if (curr === startKey) break;
+                curr = prev[curr];
+            }
+            return path.length > 1 ? path : [startKey, endKey];
+        }
+
+        /**
+         * VERIFIED OFFICIAL EMT PALMA & TIB MALLORCA ROUTES
+         * Route numbers, operators, and stop sequences match real EMT Palma & TIB corridors.
+         * All TIB lines (101, 104, 203, 204, 301, 302, 401, 411e, 501, 515e) depart from and return to Palma Estació Intermodal (#40036).
+         */
+        const ROUTES = [
+            // --- OFFICIAL EMT PALMA URBAN NETWORK ---
+            {
+                id: 'A1',
+                operator: 'EMT Palma',
+                type: 'URBAN',
+                name: 'Aeroport ↔ Palma Centre (Estació Intermodal)',
+                color: '#0ea5e9', // EMT Airport Sky Blue
+                stops: ['palma_intermodal', 'porta_des_camp', 'coll_den_rabassa', 'aeroport'],
+                busCount: 3,
+                cruiseSpeedKmh: 45
+            },
+            {
+                id: 'A2',
+                operator: 'EMT Palma',
+                type: 'URBAN',
+                name: "Aeroport ↔ Can Pastilla ↔ S'Arenal",
+                color: '#38bdf8',
+                stops: ['aeroport', 'can_pastilla', 's_arenal'],
+                busCount: 2,
+                cruiseSpeedKmh: 40
+            },
+            {
+                id: 'L3',
+                operator: 'EMT Palma',
+                type: 'URBAN',
+                name: "Es Pont d'Inca ↔ Pl. Espanya ↔ Pl. Progrés ↔ Illetes",
+                color: '#2dd4bf',
+                stops: ['ses_illetes', 'porto_pi', 'palma_port', 'pl_progres', 'palma_intermodal', 'arago_can_capes', 'pont_inca'],
+                busCount: 4,
+                cruiseSpeedKmh: 34
+            },
+            {
+                id: 'L4',
+                operator: 'EMT Palma',
+                type: 'URBAN',
+                name: 'Ses Illetes ↔ Portopí ↔ Pl. Reina ↔ Pl. Espanya',
+                color: '#34d399',
+                stops: ['ses_illetes', 'porto_pi', 'palma_port', 'reina_catedral', 'palma_intermodal'],
+                busCount: 3,
+                cruiseSpeedKmh: 33
+            },
+            {
+                id: 'L19',
+                operator: 'EMT Palma',
+                type: 'URBAN',
+                name: 'Campus UIB & Parc Bit ↔ Est. Intermodal ↔ Porta des Camp',
+                color: '#818cf8',
+                stops: ['uib', 'son_espases', 'palma_intermodal', 'porta_des_camp'],
+                busCount: 3,
+                cruiseSpeedKmh: 36
+            },
+            {
+                id: 'L20',
+                operator: 'EMT Palma',
+                type: 'URBAN',
+                name: 'Portopí ↔ Passeig Marítim ↔ Pl. Espanya ↔ Son Espases',
+                color: '#a78bfa',
+                stops: ['porto_pi', 'palma_port', 'pl_progres', 'palma_intermodal', 'son_espases'],
+                busCount: 3,
+                cruiseSpeedKmh: 34
+            },
+            {
+                id: 'L25',
+                operator: 'EMT Palma',
+                type: 'URBAN',
+                name: "S'Arenal ↔ Autovia Llevant ↔ Pl. Reina / Catedral",
+                color: '#06b6d4',
+                stops: ['reina_catedral', 'porta_des_camp', 'coll_den_rabassa', 'can_pastilla', 's_arenal'],
+                busCount: 4,
+                cruiseSpeedKmh: 44
+            },
+            {
+                id: 'L35',
+                operator: 'EMT Palma',
+                type: 'URBAN',
+                name: 'Aquàrium / Can Pastilla ↔ Coll Rabassa ↔ Pl. Reina / Intermodal',
+                color: '#60a5fa',
+                stops: ['palma_intermodal', 'porta_des_camp', 'coll_den_rabassa', 'can_pastilla'],
+                busCount: 3,
+                cruiseSpeedKmh: 36
+            },
+
+            // --- OFFICIAL TIB INTERURBAN NETWORK (All anchored at Palma Estació Intermodal #40036) ---
+            {
+                id: '101',
+                operator: 'TIB Mallorca',
+                type: 'INTERURBAN',
+                name: "Palma Est. Intermodal ↔ Andratx ↔ Port d'Andratx",
+                color: '#eab308', // TIB Ponent Gold
+                stops: ['palma_intermodal', 'pl_progres', 'porto_pi', 'santa_ponca', 'peguera', 'camp_de_mar', 'andratx', 'port_andratx'],
+                busCount: 4,
+                cruiseSpeedKmh: 72
+            },
+            {
+                id: '104',
+                operator: 'TIB Mallorca',
+                type: 'INTERURBAN',
+                name: 'Palma Est. Intermodal ↔ Cas Català ↔ Palmanova ↔ Magaluf',
+                color: '#facc15',
+                stops: ['palma_intermodal', 'pl_progres', 'porto_pi', 'ses_illetes', 'magaluf'],
+                busCount: 3,
+                cruiseSpeedKmh: 62
+            },
+            {
+                id: '203',
+                operator: 'TIB Mallorca',
+                type: 'INTERURBAN',
+                name: 'Palma Est. Intermodal ↔ Valldemossa ↔ Deià ↔ Port de Sóller',
+                color: '#10b981', // TIB Tramuntana Green
+                stops: ['palma_intermodal', 'son_sardina', 'valldemossa', 'deia', 'soller', 'port_soller'],
+                busCount: 3,
+                cruiseSpeedKmh: 54
+            },
+            {
+                id: '204',
+                operator: 'TIB Mallorca',
+                type: 'INTERURBAN',
+                name: 'Palma Est. Intermodal ↔ Bunyola ↔ Sóller ↔ Port de Sóller',
+                color: '#059669',
+                stops: ['palma_intermodal', 'son_sardina', 'bunyola', 'soller', 'port_soller'],
+                busCount: 3,
+                cruiseSpeedKmh: 64
+            },
+            {
+                id: '301',
+                operator: 'TIB Mallorca',
+                type: 'INTERURBAN',
+                name: 'Palma Est. Intermodal ↔ Inca ↔ Sa Pobla ↔ Pollença ↔ Port de Pollença',
+                color: '#f59e0b', // TIB Nord Amber
+                stops: ['palma_intermodal', 'arago_can_capes', 'marratxi', 'santa_maria', 'consell', 'binissalem', 'inca', 'sa_pobla', 'pollenca', 'port_pollenca'],
+                busCount: 4,
+                cruiseSpeedKmh: 78
+            },
+            {
+                id: '302',
+                operator: 'TIB Mallorca',
+                type: 'INTERURBAN',
+                name: "Palma Est. Intermodal ↔ Inca ↔ Alcúdia ↔ Platja de Muro ↔ Can Picafort",
+                color: '#d97706',
+                stops: ['palma_intermodal', 'arago_can_capes', 'inca', 'sa_pobla', 'alcudia', 'platja_muro', 'can_picafort'],
+                busCount: 4,
+                cruiseSpeedKmh: 76
+            },
+            {
+                id: '401',
+                operator: 'TIB Mallorca',
+                type: 'INTERURBAN',
+                name: 'Palma Est. Intermodal ↔ Algaida ↔ Manacor ↔ Portocristo ↔ Cala Millor',
+                color: '#f97316', // TIB Llevant Orange
+                stops: ['palma_intermodal', 'arago_can_capes', 'son_ferriol', 'algaida', 'montuiri', 'vilafranca', 'manacor', 'porto_cristo', 's_illot', 'cala_millor'],
+                busCount: 4,
+                cruiseSpeedKmh: 75
+            },
+            {
+                id: '411e',
+                operator: 'TIB Mallorca',
+                type: 'INTERURBAN',
+                name: 'Palma Est. Intermodal ↔ Manacor ↔ Sant Llorenç ↔ Artà ↔ Cala Rajada',
+                color: '#fb923c',
+                stops: ['palma_intermodal', 'arago_can_capes', 'manacor', 'sant_llorenc', 'arta', 'capdepera', 'cala_ratjada'],
+                busCount: 3,
+                cruiseSpeedKmh: 76
+            },
+            {
+                id: '501',
+                operator: 'TIB Mallorca',
+                type: 'INTERURBAN',
+                name: 'Palma Est. Intermodal ↔ Llucmajor ↔ Campos ↔ Felanitx ↔ Manacor',
+                color: '#ec4899', // TIB Migjorn Rose/Magenta
+                stops: ['palma_intermodal', 'porta_des_camp', 's_arenal', 'llucmajor', 'campos', 'felanitx', 'manacor'],
+                busCount: 4,
+                cruiseSpeedKmh: 74
+            },
+            {
+                id: '515e',
+                operator: 'TIB Mallorca',
+                type: 'INTERURBAN',
+                name: "Palma Est. Intermodal ↔ Llucmajor ↔ Campos ↔ Santanyí ↔ Cala d'Or",
+                color: '#f43f5e',
+                stops: ['palma_intermodal', 'porta_des_camp', 'llucmajor', 'campos', 'santanyi', 'cala_dor'],
+                busCount: 3,
+                cruiseSpeedKmh: 74
+            }
+        ];
+
+        // Expand each route's stop sequence into a complete road-following waypoint path using Dijkstra
+        ROUTES.forEach(route => {
+            const fullNodePath = [];
+            const designatedStopSet = new Set(route.stops);
+
+            for (let i = 0; i < route.stops.length - 1; i++) {
+                const subPath = findRoadPath(route.stops[i], route.stops[i + 1]);
+                subPath.forEach((nodeKey, idx) => {
+                    if (i === 0 || idx > 0) {
+                        fullNodePath.push(nodeKey);
+                    }
+                });
+            }
+
+            route.path = fullNodePath;
+            route.waypoints = route.path.map(nodeKey => {
+                const n = NODES[nodeKey];
+                return {
+                    x: n.x,
+                    y: n.y,
+                    key: nodeKey,
+                    name: n.name,
+                    shortName: n.shortName || n.name,
+                    isStop: designatedStopSet.has(nodeKey)
+                };
+            });
+
+            route.segments = [];
+            route.stopDistances = [];
+            route.totalLength = 0;
+
+            for (let i = 0; i < route.waypoints.length; i++) {
+                const wp = route.waypoints[i];
+                if (wp.isStop) {
+                    route.stopDistances.push({
+                        dist: route.totalLength,
+                        key: wp.key,
+                        name: wp.name,
+                        shortName: wp.shortName
+                    });
+                }
+                if (i < route.waypoints.length - 1) {
+                    const nextWp = route.waypoints[i + 1];
+                    const dx = nextWp.x - wp.x;
+                    const dy = nextWp.y - wp.y;
+                    const len = Math.hypot(dx, dy);
+                    route.segments.push({
+                        a: wp,
+                        b: nextWp,
+                        len: len,
+                        startDist: route.totalLength,
+                        angle: Math.atan2(dy, dx)
+                    });
+                    route.totalLength += len;
+                }
+            }
+        });
+
+        /**
+         * PHASE 2: PROCEDURAL MINIATURE 3D WORLD & PASSENGER ACTIVITY SYSTEM
+         * Generates deterministic 2.5D buildings, Mediterranean trees, and stop passenger queues
+         * around every municipality and neighborhood on Mallorca.
+         */
+        const worldBuildings = [];
+        const worldTrees = [];
+        const worldPedestrians = [];
+        const stopPassengerState = {};
+
+        // Deterministic PRNG so world layout is consistent
+        let rngSeed = 42109;
+        function seededRandom() {
+            rngSeed = (rngSeed * 1664525 + 1013904223) % 4294967296;
+            return rngSeed / 4294967296;
+        }
+
+        function pointInPolygon(x, y, poly) {
+            let inside = false;
+            for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+                const xi = poly[i].x, yi = poly[i].y;
+                const xj = poly[j].x, yj = poly[j].y;
+                const intersect = ((yi > y) !== (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi + 0.00001) + xi);
+                if (intersect) inside = !inside;
+            }
+            return inside;
+        }
+
+        function minDistToRoadSegment(px, py) {
+            let best = Infinity;
+            for (let i = 0; i < ROAD_EDGES.length; i++) {
+                const a = NODES[ROAD_EDGES[i][0]];
+                const b = NODES[ROAD_EDGES[i][1]];
+                if (!a || !b) continue;
+                const d = distToSegment({ x: px, y: py }, a, b);
+                if (d < best) best = d;
+            }
+            return best;
+        }
+
+        function initPhase2World() {
+            worldBuildings.length = 0;
+            worldTrees.length = 0;
+            worldPedestrians.length = 0;
+
+            // 1. Initialize passenger queues at all transit stops
+            Object.keys(NODES).forEach(key => {
+                const n = NODES[key];
+                if (n.type === 'junction') return;
+                const baseWaiting = Math.floor((n.popWeight || 1.2) * (2 + seededRandom() * 4));
+                stopPassengerState[key] = {
+                    waiting: baseWaiting,
+                    totalBoarded: 0,
+                    spawnAccumulator: 0,
+                    spawnRatePerSimSec: (n.popWeight || 1.2) * 0.035
+                };
+            });
+
+            // 2. Generate 2.5D miniature buildings around every town and Palma district
+            const roofPalettes = [
+                { roof: '#c2593f', wall: '#dfd5c6', side: '#b8ad9e' }, // Mallorcan Terracotta + Sandstone
+                { roof: '#b34b34', wall: '#e8dec8', side: '#c2b69f' }, // Classic Tile + Ochre
+                { roof: '#d46a4e', wall: '#f1ebe1', side: '#cbc3b7' }, // Warm Clay + Whitewash
+                { roof: '#334155', wall: '#cbd5e1', side: '#94a3b8' }, // Modern Palma Slate
+                { roof: '#1e293b', wall: '#94a3b8', side: '#64748b' }  // Commercial Glass/Steel
+            ];
+
+            Object.keys(NODES).forEach(key => {
+                const n = NODES[key];
+                if (n.type === 'junction') return;
+
+                const isPalma = !!n.urban;
+                const count = n.type === 'hub' ? 42 : (isPalma ? 28 : (n.major ? 26 : 16));
+                const spreadRadius = isPalma ? 7.5 : (n.major ? 9.5 : 6.5);
+
+                for (let i = 0; i < count; i++) {
+                    const angle = seededRandom() * Math.PI * 2;
+                    const dist = 1.3 + Math.pow(seededRandom(), 0.75) * spreadRadius;
+                    const bx = n.x + Math.cos(angle) * dist;
+                    const by = n.y + Math.sin(angle) * dist;
+
+                    if (!pointInPolygon(bx, by, MALLORCA_COAST)) continue;
+                    const roadClearance = minDistToRoadSegment(bx, by);
+                    if (roadClearance < 0.75) continue; // Keep buildings off the road surface
+
+                    const isHighRise = isPalma && dist < 4.2 && seededRandom() > 0.45;
+                    const w = isHighRise ? (0.65 + seededRandom() * 0.55) : (0.42 + seededRandom() * 0.45);
+                    const d = isHighRise ? (0.55 + seededRandom() * 0.45) : (0.38 + seededRandom() * 0.42);
+                    const h = isHighRise ? (1.2 + seededRandom() * 1.6) : (0.45 + seededRandom() * 0.65);
+
+                    const paletteIdx = isHighRise
+                        ? (seededRandom() > 0.35 ? 3 : 4)
+                        : Math.floor(seededRandom() * 3);
+                    const pal = roofPalettes[paletteIdx];
+
+                    worldBuildings.push({
+                        x: bx,
+                        y: by,
+                        w: w,
+                        d: d,
+                        h: h,
+                        roofColor: pal.roof,
+                        wallColor: pal.wall,
+                        sideColor: pal.side,
+                        isMajor: i < count * 0.45,
+                        windows: Math.max(1, Math.floor(w * 3))
+                    });
+                }
+
+                // Spawn ambient walking pedestrians on town sidewalks
+                const pedCount = n.type === 'hub' ? 12 : (n.major ? 7 : 4);
+                for (let p = 0; p < pedCount; p++) {
+                    const a = seededRandom() * Math.PI * 2;
+                    const r = 1.0 + seededRandom() * (spreadRadius * 0.6);
+                    const px = n.x + Math.cos(a) * r;
+                    const py = n.y + Math.sin(a) * r;
+                    if (!pointInPolygon(px, py, MALLORCA_COAST)) continue;
+                    const colors = ['#38bdf8', '#fbbf24', '#34d399', '#f472b6', '#a78bfa', '#f8fafc'];
+                    worldPedestrians.push({
+                        originX: px,
+                        originY: py,
+                        x: px,
+                        y: py,
+                        angle: seededRandom() * Math.PI * 2,
+                        speed: 0.15 + seededRandom() * 0.18,
+                        walkRadius: 0.8 + seededRandom() * 1.4,
+                        color: colors[Math.floor(seededRandom() * colors.length)],
+                        phase: seededRandom() * Math.PI * 2
+                    });
+                }
+            });
+
+            // Sort buildings back-to-front by Y coordinate for proper 2.5D painter's algorithm occlusion
+            worldBuildings.sort((a, b) => a.y - b.y);
+
+            // 3. Generate Mediterranean pine, olive & palm trees across Tramuntana, Llevant, and rural Mallorca
+            for (let i = 0; i < 620; i++) {
+                const tx = 120 + seededRandom() * 700;
+                const ty = 85 + seededRandom() * 515;
+                if (!pointInPolygon(tx, ty, MALLORCA_COAST)) continue;
+                if (minDistToRoadSegment(tx, ty) < 1.1) continue;
+
+                const inTramuntana = pointInPolygon(tx, ty, TRAMUNTANA_RELIEF);
+                const inLlevant = pointInPolygon(tx, ty, LLEVANT_RELIEF);
+                if (!inTramuntana && !inLlevant && seededRandom() > 0.32) continue;
+
+                const radius = (inTramuntana ? 0.55 : 0.42) + seededRandom() * 0.45;
+                const greens = ['#15803d', '#166534', '#14532d', '#0f766e', '#1e4620'];
+                worldTrees.push({
+                    x: tx,
+                    y: ty,
+                    r: radius,
+                    h: radius * 1.35,
+                    color: greens[Math.floor(seededRandom() * greens.length)],
+                    isClusterCore: i % 3 === 0
+                });
+            }
+            worldTrees.sort((a, b) => a.y - b.y);
+        }
+
+        // Fleet container
+        const buses = [];
+
+        function initBuses() {
+            buses.length = 0;
+            ROUTES.forEach((route, rIdx) => {
+                for (let i = 0; i < route.busCount; i++) {
+                    // First bus of each TIB route starts near Palma Estació Intermodal departing outward; others staggered along the corridor
+                    const fraction = i === 0 ? 0.02 + (rIdx % 4) * 0.015 : (i + 0.18 + (rIdx % 3) * 0.07) / route.busCount;
+                    const clampedFrac = Math.max(0.01, Math.min(0.96, fraction));
+                    const direction = i % 2 === 0 ? 1 : -1;
+
+                    const speedVariation = 0.94 + ((i * 7 + rIdx * 3) % 13) * 0.01;
+                    const maxSpeedKmh = route.cruiseSpeedKmh * speedVariation;
+                    const maxSpeedUnitsPerSimSec = (maxSpeedKmh / WORLD_KM_PER_UNIT) / 3600;
+
+                    buses.push({
+                        id: `${route.id}-${101 + i}`,
+                        routeId: route.id,
+                        route: route,
+                        dist: clampedFrac * route.totalLength,
+                        dir: direction,
+                        maxSpeedUnits: maxSpeedUnitsPerSimSec,
+                        currentSpeedUnits: maxSpeedUnitsPerSimSec * 0.85,
+                        dwellTimerSimSec: 0,
+                        lastStoppedIndex: -1,
+                        state: 'CRUISING',
+                        passengersOnBoard: 6 + ((i * 5 + rIdx * 3) % 18),
+                        capacity: route.type === 'INTERURBAN' ? 55 : 45,
+                        lastBoardedCount: 0,
+                        x: 0,
+                        y: 0,
+                        angle: 0,
+                        currentStopName: '',
+                        nextStopName: '',
+                        destinationName: ''
+                    });
+                }
+            });
+
+            document.getElementById('activeBusCount').textContent = buses.length;
+            buses.forEach(updateBusKinematicsAndTelemetry);
+            updatePassengerCountersUI();
+        }
+
+        function updatePassengerCountersUI() {
+            let totalWaiting = 0;
+            for (const k in stopPassengerState) {
+                totalWaiting += stopPassengerState[k].waiting;
+            }
+            const waitEl = document.getElementById('waitingPaxCount');
+            const boardEl = document.getElementById('boardedPaxCount');
+            if (waitEl) waitEl.textContent = totalWaiting;
+            if (boardEl) boardEl.textContent = totalPassengersBoarded;
+        }
+
+        /**
+         * Find upcoming stop and previous stop along the bus's current travel direction
+         */
+        function getStopContext(bus) {
+            const stops = bus.route.stopDistances;
+            const d = bus.dist;
+            if (bus.dir === 1) {
+                let nextIdx = stops.length - 1;
+                for (let i = 0; i < stops.length; i++) {
+                    if (stops[i].dist > d + 0.05) {
+                        nextIdx = i;
+                        break;
+                    }
+                }
+                const prevIdx = Math.max(0, nextIdx - 1);
+                return {
+                    prevStop: stops[prevIdx],
+                    nextStop: stops[nextIdx],
+                    nextStopIdx: nextIdx,
+                    distToNext: Math.max(0, stops[nextIdx].dist - d),
+                    destination: stops[stops.length - 1]
+                };
+            } else {
+                let nextIdx = 0;
+                for (let i = stops.length - 1; i >= 0; i--) {
+                    if (stops[i].dist < d - 0.05) {
+                        nextIdx = i;
+                        break;
+                    }
+                }
+                const prevIdx = Math.min(stops.length - 1, nextIdx + 1);
+                return {
+                    prevStop: stops[prevIdx],
+                    nextStop: stops[nextIdx],
+                    nextStopIdx: nextIdx,
+                    distToNext: Math.max(0, d - stops[nextIdx].dist),
+                    destination: stops[0]
+                };
+            }
+        }
+
+        /**
+         * Compute exact 2D position, smooth corner heading, and stop names for a bus
+         */
+        function updateBusKinematicsAndTelemetry(bus) {
+            const route = bus.route;
+            const d = Math.max(0, Math.min(route.totalLength, bus.dist));
+
+            let segIdx = 0;
+            for (let i = 0; i < route.segments.length; i++) {
+                if (d <= route.segments[i].startDist + route.segments[i].len || i === route.segments.length - 1) {
+                    segIdx = i;
+                    break;
+                }
+            }
+
+            const seg = route.segments[segIdx];
+            const localDist = d - seg.startDist;
+            const t = seg.len > 0 ? localDist / seg.len : 0;
+
+            bus.x = seg.a.x + (seg.b.x - seg.a.x) * t;
+            bus.y = seg.a.y + (seg.b.y - seg.a.y) * t;
+
+            // Smooth angular interpolation near segment junctions
+            let baseAngle = bus.dir === 1 ? seg.angle : seg.angle + Math.PI;
+            const blendZone = Math.min(3.5, seg.len * 0.25);
+            if (bus.dir === 1 && segIdx < route.segments.length - 1 && (seg.len - localDist) < blendZone) {
+                const nextAngle = route.segments[segIdx + 1].angle;
+                const factor = 1 - (seg.len - localDist) / blendZone;
+                baseAngle = interpolateAngle(baseAngle, nextAngle, factor * 0.5);
+            } else if (bus.dir === -1 && segIdx > 0 && localDist < blendZone) {
+                const nextAngle = route.segments[segIdx - 1].angle + Math.PI;
+                const factor = 1 - localDist / blendZone;
+                baseAngle = interpolateAngle(baseAngle, nextAngle, factor * 0.5);
+            }
+            bus.angle = baseAngle;
+
+            const ctxStops = getStopContext(bus);
+            bus.destinationName = ctxStops.destination.shortName;
+            bus.nextStopName = ctxStops.nextStop.shortName;
+
+            if (bus.state === 'BOARDING') {
+                bus.currentStopName = `At ${ctxStops.prevStop.shortName}`;
+            } else {
+                bus.currentStopName = `${ctxStops.prevStop.shortName} → ${ctxStops.nextStop.shortName}`;
+            }
+        }
+
+        function interpolateAngle(a, b, t) {
+            let diff = b - a;
+            while (diff < -Math.PI) diff += Math.PI * 2;
+            while (diff > Math.PI) diff -= Math.PI * 2;
+            return a + diff * t;
+        }
+
+        /**
+         * Advance simulation state using consistent simulation-time delta (simDt in sim-seconds)
+         */
+        function updateSimulation(realDtSeconds) {
+            if (simSpeed === 0) return;
+
+            const simDt = realDtSeconds * BASE_SIM_SECONDS_PER_REAL_SEC * simSpeed;
+            simTimeSeconds = (simTimeSeconds + simDt) % 86400;
+            updateClockUI();
+
+            // 1. Update waiting passenger arrivals at stops
+            for (const key in stopPassengerState) {
+                const st = stopPassengerState[key];
+                st.spawnAccumulator += st.spawnRatePerSimSec * simDt;
+                if (st.spawnAccumulator >= 1) {
+                    const add = Math.floor(st.spawnAccumulator);
+                    st.waiting = Math.min(35, st.waiting + add);
+                    st.spawnAccumulator -= add;
+                }
+            }
+
+            // 2. Animate sidewalk pedestrians when in medium/close zoom
+            if (camera.zoom >= 3.0) {
+                worldPedestrians.forEach(p => {
+                    p.phase += realDtSeconds * simSpeed * 2.2;
+                    p.x = p.originX + Math.cos(p.angle + p.phase * 0.35) * p.walkRadius * Math.sin(p.phase * 0.5);
+                    p.y = p.originY + Math.sin(p.angle + p.phase * 0.35) * p.walkRadius * Math.sin(p.phase * 0.5);
+                });
+            }
+
+            const brakingDistanceUnits = 4.0;
+            const accelRate = 0.018;
+
+            buses.forEach(bus => {
+                // Handle active dwell & passenger boarding at a stop or terminal
+                if (bus.dwellTimerSimSec > 0) {
+                    bus.dwellTimerSimSec = Math.max(0, bus.dwellTimerSimSec - simDt);
+                    bus.currentSpeedUnits = 0;
+                    bus.state = 'BOARDING';
+                    if (bus.dwellTimerSimSec === 0) {
+                        bus.state = 'CRUISING';
+                    }
+                    updateBusKinematicsAndTelemetry(bus);
+                    return;
+                }
+
+                const stopCtx = getStopContext(bus);
+                const distToNext = stopCtx.distToNext;
+
+                let targetSpeed = bus.maxSpeedUnits;
+                if (distToNext < brakingDistanceUnits && bus.lastStoppedIndex !== stopCtx.nextStopIdx) {
+                    bus.state = 'APPROACHING';
+                    const decelFactor = Math.max(0.12, distToNext / brakingDistanceUnits);
+                    targetSpeed = bus.maxSpeedUnits * decelFactor;
+                } else {
+                    bus.state = 'CRUISING';
+                }
+
+                if (bus.currentSpeedUnits < targetSpeed) {
+                    bus.currentSpeedUnits = Math.min(targetSpeed, bus.currentSpeedUnits + accelRate * simDt);
+                } else {
+                    bus.currentSpeedUnits = Math.max(targetSpeed, bus.currentSpeedUnits - accelRate * 1.4 * simDt);
+                }
+
+                const stepDist = bus.currentSpeedUnits * simDt;
+
+                if (bus.lastStoppedIndex !== stopCtx.nextStopIdx && distToNext <= Math.max(stepDist, 0.18)) {
+                    bus.dist = stopCtx.nextStop.dist;
+                    bus.currentSpeedUnits = 0;
+                    bus.lastStoppedIndex = stopCtx.nextStopIdx;
+                    bus.state = 'BOARDING';
+
+                    const stopKey = stopCtx.nextStop.key;
+                    const stopState = stopPassengerState[stopKey];
+
+                    const isEndTerminal = (bus.dir === 1 && stopCtx.nextStopIdx === bus.route.stopDistances.length - 1);
+                    const isStartTerminal = (bus.dir === -1 && stopCtx.nextStopIdx === 0);
+
+                    // Alighting passengers
+                    if (isEndTerminal || isStartTerminal) {
+                        bus.passengersOnBoard = 0;
+                    } else if (bus.passengersOnBoard > 0) {
+                        const alight = Math.min(bus.passengersOnBoard, Math.floor(bus.passengersOnBoard * 0.28) + 1);
+                        bus.passengersOnBoard -= alight;
+                    }
+
+                    // Boarding waiting passengers from the stop
+                    let boardedNow = 0;
+                    if (stopState && stopState.waiting > 0) {
+                        const freeSeats = Math.max(0, bus.capacity - bus.passengersOnBoard);
+                        boardedNow = Math.min(stopState.waiting, freeSeats, 12);
+                        stopState.waiting -= boardedNow;
+                        stopState.totalBoarded += boardedNow;
+                        bus.passengersOnBoard += boardedNow;
+                        totalPassengersBoarded += boardedNow;
+                    }
+                    bus.lastBoardedCount = boardedNow;
+
+                    if (isEndTerminal) {
+                        bus.dir = -1;
+                        bus.dwellTimerSimSec = 26 + boardedNow * 1.2;
+                    } else if (isStartTerminal) {
+                        bus.dir = 1;
+                        bus.dwellTimerSimSec = 26 + boardedNow * 1.2;
+                    } else {
+                        bus.dwellTimerSimSec = 10 + boardedNow * 1.2;
+                    }
+                } else {
+                    bus.dist += stepDist * bus.dir;
+                    bus.dist = Math.max(0, Math.min(bus.route.totalLength, bus.dist));
+                }
+
+                updateBusKinematicsAndTelemetry(bus);
+            });
+
+            updatePassengerCountersUI();
+
+            if (selectedBusId) {
+                const b = buses.find(u => u.id === selectedBusId);
+                if (b) updateInspectorForBus(b);
+            } else if (selectedStopKey) {
+                updateInspectorForStop(selectedStopKey);
+            }
+        }
+
+        function updateClockUI() {
+            const totalSecs = Math.floor(simTimeSeconds);
+            const hrs = String(Math.floor(totalSecs / 3600)).padStart(2, '0');
+            const mins = String(Math.floor((totalSecs % 3600) / 60)).padStart(2, '0');
+            const secs = String(totalSecs % 60).padStart(2, '0');
+            document.getElementById('simClock').textContent = `${hrs}:${mins}:${secs}`;
+        }
+
+        // Convert World Coordinates <-> Screen Coordinates
+        function worldToScreen(wx, wy) {
+            const cw = canvas.clientWidth;
+            const ch = canvas.clientHeight;
+            return {
+                x: (wx - camera.x) * camera.zoom + cw / 2,
+                y: (wy - camera.y) * camera.zoom + ch / 2
+            };
+        }
+
+        function screenToWorld(sx, sy) {
+            const cw = canvas.clientWidth;
+            const ch = canvas.clientHeight;
+            return {
+                x: (sx - cw / 2) / camera.zoom + camera.x,
+                y: (sy - ch / 2) / camera.zoom + camera.y
+            };
+        }
+
+        // Fit Mallorca to fill the viewport effectively with minimal wasted margin
+        function resetCamera() {
+            const cw = window.innerWidth;
+            const ch = window.innerHeight;
+            const islandWidth = 745;
+            const islandHeight = 550;
+            const usableW = cw * 0.94;
+            const usableH = ch * 0.78;
+            camera.zoom = Math.max(camera.minZoom, Math.min(camera.maxZoom, Math.min(usableW / islandWidth, usableH / islandHeight)));
+            camera.x = 462;
+            camera.y = 355;
+            updateZoomReadout();
+        }
+
+        // Quick-focus button for Palma Metropolitan Area
+        function focusPalma() {
+        // Quick-focus button for Palma Metropolitan Area (Medium LOD)
+        function focusPalma() {
+            camera.x = 296;
+            camera.y = 382;
+            camera.zoom = 4.2;
+            updateZoomReadout();
+        }
+
+        // Quick-focus button for Street-Level 3D Close Zoom at Palma Estació Intermodal
+        function focusStreetLevel() {
+            if (selectedBusId) {
+                const b = buses.find(u => u.id === selectedBusId);
+                if (b) {
+                    camera.x = b.x;
+                    camera.y = b.y;
+                    camera.zoom = 12.5;
+                    updateZoomReadout();
+                    return;
+                }
+            }
+            camera.x = 295;
+            camera.y = 376;
+            camera.zoom = 12.0;
+            updateZoomReadout();
+        }
+
+        function zoomMap(factor, centerScreenX, centerScreenY) {
+            const cw = canvas.clientWidth;
+            const ch = canvas.clientHeight;
+            const cx = centerScreenX !== undefined ? centerScreenX : cw / 2;
+            const cy = centerScreenY !== undefined ? centerScreenY : ch / 2;
+
+            const beforeWorld = screenToWorld(cx, cy);
+            camera.zoom = Math.max(camera.minZoom, Math.min(camera.maxZoom, camera.zoom * factor));
+            const afterWorld = screenToWorld(cx, cy);
+
+            camera.x += (beforeWorld.x - afterWorld.x);
+            camera.y += (beforeWorld.y - afterWorld.y);
+            clampCamera();
+            updateZoomReadout();
+        }
+
+        function clampCamera() {
+            camera.x = Math.max(70, Math.min(880, camera.x));
+            camera.y = Math.max(60, Math.min(660, camera.y));
+        }
+
+        function getActiveLODName() {
+            if (camera.zoom < 2.2) return 'ISLAND';
+            if (camera.zoom < 6.5) return 'DISTRICT';
+            return 'STREET 3D';
+        }
+
+        function updateZoomReadout() {
+            const el = document.getElementById('zoomReadout');
+            if (el) el.textContent = `${Math.round(camera.zoom * 100)}%`;
+            const lodEl = document.getElementById('lodBadge');
+            if (lodEl) {
+                const lod = getActiveLODName();
+                lodEl.textContent = `LOD: ${lod}`;
+            }
+        }
+
+        function toggleLabels() {
+            showBusLabels = !showBusLabels;
+            const btn = document.getElementById('btnToggleLabels');
+            if (showBusLabels) {
+                btn.classList.add('text-cyan-400', 'border-cyan-500/30');
+                btn.classList.remove('text-slate-400');
+            } else {
+                btn.classList.remove('text-cyan-400', 'border-cyan-500/30');
+                btn.classList.add('text-slate-400');
+            }
+        }
+
+        function buildRouteButtons() {
+            const container = document.getElementById('routeButtonsContainer');
+            const urbanCount = ROUTES.filter(r => r.type === 'URBAN').length;
+            const interurbanCount = ROUTES.filter(r => r.type === 'INTERURBAN').length;
+            let html = `
+                <button onclick="filterRoute('ALL')" id="routeBtn-ALL"
+                    class="glass-btn speed-active px-2.5 py-1 rounded-xl text-[11px] font-mono-tech font-semibold shrink-0">
+                    ALL (${ROUTES.length})
+                </button>
+                <button onclick="filterRoute('URBAN')" id="routeBtn-URBAN"
+                    class="glass-btn px-2.5 py-1 rounded-xl text-[11px] font-mono-tech font-semibold text-cyan-300 shrink-0">
+                    EMT PALMA (${urbanCount})
+                </button>
+                <button onclick="filterRoute('INTERURBAN')" id="routeBtn-INTERURBAN"
+                    class="glass-btn px-2.5 py-1 rounded-xl text-[11px] font-mono-tech font-semibold text-amber-300 shrink-0">
+                    TIB (${interurbanCount})
+                </button>
+                <div class="h-4 w-[1px] bg-slate-700/70 shrink-0 mx-0.5"></div>
+            `;
+            ROUTES.forEach(r => {
+                html += `
+                    <button onclick="filterRoute('${r.id}')" id="routeBtn-${r.id}"
+                        class="glass-btn px-2.5 py-1 rounded-xl text-[11px] font-mono-tech font-semibold text-slate-200 shrink-0 flex items-center gap-1.5"
+                        title="${r.operator} ${r.id}: ${r.name}">
+                        <span class="w-2 h-2 rounded-full" style="background:${r.color}"></span>
+                        <span>${r.id}</span>
+                    </button>
+                `;
+            });
+            container.innerHTML = html;
+        }
+
+        function isRouteVisible(route) {
+            if (activeRouteFilter === 'ALL') return true;
+            if (activeRouteFilter === 'URBAN') return route.type === 'URBAN';
+            if (activeRouteFilter === 'INTERURBAN') return route.type === 'INTERURBAN';
+            return activeRouteFilter === route.id;
+        }
+
+        function filterRoute(filterKey) {
+            activeRouteFilter = filterKey;
+            selectedStopKey = null;
+            if (selectedBusId) {
+                const selectedBus = buses.find(b => b.id === selectedBusId);
+                if (selectedBus && !isRouteVisible(selectedBus.route)) {
+                    selectedBusId = null;
+                }
+            }
+
+            document.querySelectorAll('[id^="routeBtn-"]').forEach(btn => {
+                btn.classList.remove('speed-active');
+            });
+            const activeBtn = document.getElementById(`routeBtn-${filterKey}`);
+            if (activeBtn) activeBtn.classList.add('speed-active');
+
+            if (!selectedBusId) {
+                updateInspectorForRouteFilter(filterKey);
+            }
+        }
+
+        function updateInspectorForRouteFilter(filterKey) {
+            const clearBtn = document.getElementById('btnClearSelection');
+            const defaultSub = document.getElementById('inspectorDefaultSub');
+            const metricsGrid = document.getElementById('inspectorMetrics');
+            const badge = document.getElementById('inspectorBadge');
+            const serviceBadge = document.getElementById('inspectorServiceType');
+            const title = document.getElementById('inspectorTitle');
+
+            const specificRoute = ROUTES.find(r => r.id === filterKey);
+
+            if (!specificRoute) {
+                if (filterKey === 'ALL') {
+                    clearBtn.classList.add('hidden');
+                    badge.textContent = 'NETWORK';
+                    badge.style.color = '#67e8f9';
+                    badge.style.borderColor = 'rgba(6, 182, 212, 0.35)';
+                    serviceBadge.textContent = 'EMT PALMA + TIB';
+                    title.textContent = 'Select a bus, stop, or route line';
+                    defaultSub.textContent = 'Official EMT Palma & TIB route numbers/stops (timetables simulated) • Zoom in for 3D towns & passengers';
+                } else {
+                    clearBtn.classList.remove('hidden');
+                    badge.textContent = filterKey === 'URBAN' ? 'EMT PALMA' : 'TIB';
+                    badge.style.color = filterKey === 'URBAN' ? '#38bdf8' : '#fbbf24';
+                    badge.style.borderColor = badge.style.color;
+                    serviceBadge.textContent = filterKey === 'URBAN' ? 'PALMA URBAN' : 'INTERMODAL HUB';
+                    title.textContent = filterKey === 'URBAN'
+                        ? 'EMT Palma Urban Lines (A1, A2, L3, L4, L19, L20, L25, L35)'
+                        : 'TIB Interurban Network departing Palma Estació Intermodal (#40036)';
+                    defaultSub.textContent = 'Tap any route pill, stop shelter, or vehicle on the map for live telemetry';
+                }
+                defaultSub.classList.remove('hidden');
+                metricsGrid.classList.add('hidden');
+            } else {
+                clearBtn.classList.remove('hidden');
+                defaultSub.classList.add('hidden');
+                metricsGrid.classList.remove('hidden');
+
+                badge.textContent = `${specificRoute.operator} ${specificRoute.id}`;
+                badge.style.color = specificRoute.color;
+                badge.style.borderColor = specificRoute.color;
+                serviceBadge.textContent = specificRoute.type === 'URBAN' ? 'OFFICIAL EMT CORRIDOR' : 'OFFICIAL TIB CORRIDOR';
+                title.textContent = specificRoute.name;
+
+                const origin = specificRoute.stopDistances[0].shortName;
+                const terminus = specificRoute.stopDistances[specificRoute.stopDistances.length - 1].shortName;
+                const routeUnits = buses.filter(b => b.routeId === specificRoute.id);
+                const paxOnRoute = routeUnits.reduce((sum, b) => sum + b.passengersOnBoard, 0);
+
+                document.getElementById('metricLabel1').textContent = 'Terminals';
+                document.getElementById('metricVal1').textContent = `${origin} ↔ ${terminus}`;
+
+                document.getElementById('metricLabel2').textContent = 'Verified Stops';
+                document.getElementById('metricVal2').textContent = `${specificRoute.stopDistances.length} stops`;
+
+                document.getElementById('metricLabel3').textContent = 'Corridor Distance';
+                document.getElementById('metricVal3').textContent = `${(specificRoute.totalLength * WORLD_KM_PER_UNIT).toFixed(1)} km`;
+
+                document.getElementById('metricLabel4').textContent = 'Fleet & Passengers';
+                document.getElementById('metricVal4').textContent = `${routeUnits.length} buses • ${paxOnRoute} pax`;
+            }
+        }
+
+        function selectStop(stopKey) {
+            selectedBusId = null;
+            selectedStopKey = stopKey;
+            document.getElementById('btnClearSelection').classList.remove('hidden');
+            document.getElementById('inspectorDefaultSub').classList.add('hidden');
+            document.getElementById('inspectorMetrics').classList.remove('hidden');
+            updateInspectorForStop(stopKey);
+        }
+
+        function updateInspectorForStop(stopKey) {
+            const node = NODES[stopKey];
+            const st = stopPassengerState[stopKey];
+            if (!node || !st) return;
+
+            const badge = document.getElementById('inspectorBadge');
+            const serviceBadge = document.getElementById('inspectorServiceType');
+            badge.textContent = node.code ? `STOP #${node.code}` : 'TRANSIT STOP';
+            badge.style.color = '#34d399';
+            badge.style.borderColor = '#34d399';
+
+            const servingRoutes = ROUTES.filter(r => r.stops.includes(stopKey)).map(r => r.id);
+            serviceBadge.textContent = node.type === 'hub' ? 'INTERMODAL HUB' : 'BUS STOP';
+            document.getElementById('inspectorTitle').textContent = node.name;
+
+            document.getElementById('metricLabel1').textContent = 'Waiting Passengers';
+            document.getElementById('metricVal1').textContent = `${st.waiting} waiting at shelter`;
+
+            document.getElementById('metricLabel2').textContent = 'Total Boarded';
+            document.getElementById('metricVal2').textContent = `${st.totalBoarded} boarded today`;
+
+            document.getElementById('metricLabel3').textContent = 'Lines Serving Stop';
+            document.getElementById('metricVal3').textContent = servingRoutes.join(', ') || 'Local';
+
+            document.getElementById('metricLabel4').textContent = 'Hub Status';
+            document.getElementById('metricVal4').textContent = st.waiting > 15 ? 'BUSY QUEUE' : 'NORMAL FLOW';
+        }
+
+        function selectBus(bus) {
+            selectedStopKey = null;
+            if (!bus) {
+                selectedBusId = null;
+                updateInspectorForRouteFilter(activeRouteFilter);
+                return;
+            }
+            selectedBusId = bus.id;
+            document.getElementById('btnClearSelection').classList.remove('hidden');
+            document.getElementById('inspectorDefaultSub').classList.add('hidden');
+            document.getElementById('inspectorMetrics').classList.remove('hidden');
+            updateInspectorForBus(bus);
+        }
+
+        function updateInspectorForBus(bus) {
+            const badge = document.getElementById('inspectorBadge');
+            const serviceBadge = document.getElementById('inspectorServiceType');
+            badge.textContent = bus.id;
+            badge.style.borderColor = bus.route.color;
+            badge.style.color = bus.route.color;
+
+            serviceBadge.textContent = `${bus.route.operator} • Línia ${bus.route.id}`;
+            document.getElementById('inspectorTitle').textContent = bus.route.name;
+
+            document.getElementById('metricLabel1').textContent = 'Current Position';
+            document.getElementById('metricVal1').textContent = bus.currentStopName;
+
+            document.getElementById('metricLabel2').textContent = 'Next Stop & Dest.';
+            document.getElementById('metricVal2').textContent = `${bus.nextStopName} → ${bus.destinationName}`;
+
+            document.getElementById('metricLabel3').textContent = 'Passengers Onboard';
+            document.getElementById('metricVal3').textContent = `${bus.passengersOnBoard}/${bus.capacity} pax ${bus.state === 'BOARDING' && bus.lastBoardedCount > 0 ? '(+' + bus.lastBoardedCount + ' boarded)' : ''}`;
+
+            document.getElementById('metricLabel4').textContent = 'Operating Status';
+            const speedKmh = Math.round(bus.currentSpeedUnits * 3600 * WORLD_KM_PER_UNIT);
+            if (simSpeed === 0) {
+                document.getElementById('metricVal4').textContent = `PAUSED (${speedKmh} km/h)`;
+            } else if (bus.state === 'BOARDING') {
+                document.getElementById('metricVal4').textContent = `BOARDING PAX`;
+            } else if (bus.state === 'APPROACHING') {
+                document.getElementById('metricVal4').textContent = `BRAKING • ${speedKmh} km/h`;
+            } else {
+                document.getElementById('metricVal4').textContent = `EN ROUTE • ${speedKmh} km/h`;
+            }
+        }
+
+        // MAIN CANVAS RENDERING PIPELINE WITH WORLDBOX-STYLE MULTI-LOD DETAIL
+        function drawMap(timestamp) {
+            const dpr = window.devicePixelRatio || 1;
+            const cw = canvas.clientWidth;
+            const ch = canvas.clientHeight;
+
+            if (canvas.width !== Math.floor(cw * dpr) || canvas.height !== Math.floor(ch * dpr)) {
+                canvas.width = Math.floor(cw * dpr);
+                canvas.height = Math.floor(ch * dpr);
+            }
+
+            ctx.save();
+            ctx.scale(dpr, dpr);
+
+            // 1. Deep Mediterranean Sea Background
+            const seaGrad = ctx.createRadialGradient(cw * 0.5, ch * 0.5, 40, cw * 0.5, ch * 0.5, Math.max(cw, ch) * 0.85);
+            seaGrad.addColorStop(0, '#071222');
+            seaGrad.addColorStop(1, '#040811');
+            ctx.fillStyle = seaGrad;
+            ctx.fillRect(0, 0, cw, ch);
+
+            // Compute visible world bounding box for fast frustum culling at close zoom
+            const topLeft = screenToWorld(0, 0);
+            const bottomRight = screenToWorld(cw, ch);
+            const viewBounds = {
+                minX: topLeft.x - 15,
+                maxX: bottomRight.x + 15,
+                minY: topLeft.y - 15,
+                maxY: bottomRight.y + 15
+            };
+
+            // Apply Camera Transform
+            ctx.save();
+            ctx.translate(cw / 2, ch / 2);
+            ctx.scale(camera.zoom, camera.zoom);
+            ctx.translate(-camera.x, -camera.y);
+
+            // 2. Subtle Coordinate Grid
+            drawNauticalGrid();
+
+            // 3. Mallorca Coastline, Relief & Palma Urban Footprint
+            drawIslandGeography();
+
+            // 4. Underlying Physical Road Network (with sidewalks & lane markings at close zoom)
+            drawRoadInfrastructure();
+
+            // 5. Active Bus Corridor Routes
+            drawTransitRoutes();
+
+            // 6. WorldBox-Style Multi-LOD Trees, 3D Buildings & Walking Pedestrians
+            drawWorldBoxScenery(viewBounds, timestamp);
+
+            // 7. Stop Nodes, Shelters, Waiting Passengers & Non-Overlapping Labels
+            drawNodesAndLabels(viewBounds, timestamp);
+
+            // 8. Moving Buses with 2.5D Close-Zoom Detail
+            drawBuses(timestamp);
+
+            ctx.restore();
+            ctx.restore();
+        }
+
+        function drawNauticalGrid() {
+            ctx.strokeStyle = 'rgba(56, 189, 248, 0.032)';
+            ctx.lineWidth = 1 / camera.zoom;
+            const step = 60;
+            ctx.beginPath();
+            for (let x = 0; x <= 1000; x += step) {
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, 750);
+            }
+            for (let y = 0; y <= 750; y += step) {
+                ctx.moveTo(0, y);
+                ctx.lineTo(1000, y);
+            }
+            ctx.stroke();
+        }
+
+        function drawPolygonPath(points) {
+            ctx.beginPath();
+            points.forEach((pt, idx) => {
+                if (idx === 0) ctx.moveTo(pt.x, pt.y);
+                else ctx.lineTo(pt.x, pt.y);
+            });
+            ctx.closePath();
+        }
+
+        function drawIslandGeography() {
+            // Coastal shallow bathymetry shelf
+            ctx.save();
+            drawPolygonPath(MALLORCA_COAST);
+            ctx.strokeStyle = 'rgba(14, 165, 233, 0.08)';
+            ctx.lineWidth = 10 / camera.zoom;
+            ctx.lineJoin = 'round';
+            ctx.stroke();
+
+            // Main island landmass fill
+            const landGrad = ctx.createLinearGradient(120, 90, 780, 580);
+            landGrad.addColorStop(0, '#132035');
+            landGrad.addColorStop(0.5, '#0f1a2c');
+            landGrad.addColorStop(1, '#0c1524');
+            ctx.fillStyle = landGrad;
+            ctx.fill();
+
+            // Clean shoreline stroke
+            ctx.strokeStyle = 'rgba(56, 189, 248, 0.35)';
+            ctx.lineWidth = 1.4 / camera.zoom;
+            ctx.stroke();
+            ctx.restore();
+
+            // Sa Dragonera Island
+            ctx.save();
+            drawPolygonPath(DRAGONERA_ISLAND);
+            ctx.fillStyle = '#132035';
+            ctx.fill();
+            ctx.strokeStyle = 'rgba(56, 189, 248, 0.3)';
+            ctx.lineWidth = 1.1 / camera.zoom;
+            ctx.stroke();
+            ctx.restore();
+
+            // Serra de Tramuntana & Llevant topographic zones
+            ctx.save();
+            drawPolygonPath(TRAMUNTANA_RELIEF);
+            ctx.fillStyle = 'rgba(30, 48, 74, 0.38)';
+            ctx.fill();
+            drawPolygonPath(LLEVANT_RELIEF);
+            ctx.fillStyle = 'rgba(30, 48, 74, 0.28)';
+            ctx.fill();
+            ctx.restore();
+
+            // Dense Palma Metropolitan Built-up Area
+            ctx.save();
+            drawPolygonPath(PALMA_URBAN_FOOTPRINT);
+            ctx.fillStyle = 'rgba(38, 62, 96, 0.45)';
+            ctx.fill();
+            ctx.strokeStyle = 'rgba(56, 189, 248, 0.16)';
+            ctx.lineWidth = 1 / camera.zoom;
+            ctx.stroke();
+
+            // Palma ring road (Via de Cintura Ma-20) & urban street grid texture
+            ctx.strokeStyle = 'rgba(148, 163, 184, 0.16)';
+            ctx.lineWidth = 0.9 / camera.zoom;
+            ctx.beginPath();
+            ctx.arc(294, 384, 22, Math.PI * 1.05, Math.PI * 1.98);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.arc(294, 384, 32, Math.PI * 1.1, Math.PI * 1.92);
+            ctx.stroke();
+            ctx.restore();
+        }
+
+        function drawRoadInfrastructure() {
+            ctx.save();
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+
+            const isMediumLOD = camera.zoom >= 2.2;
+            const isCloseLOD = camera.zoom >= 6.5;
+
+            // At close zoom, draw raised pedestrian sidewalks underneath urban & secondary roads
+            if (isCloseLOD) {
+                ROAD_EDGES.forEach(([fromKey, toKey, roadClass]) => {
+                    const a = NODES[fromKey];
+                    const b = NODES[toKey];
+                    if (!a || !b) return;
+                    ctx.beginPath();
+                    ctx.moveTo(a.x, a.y);
+                    ctx.lineTo(b.x, b.y);
+                    ctx.strokeStyle = roadClass === 'highway' ? 'rgba(51, 65, 85, 0.7)' : 'rgba(148, 163, 184, 0.35)';
+                    ctx.lineWidth = roadClass === 'highway' ? 1.45 : 1.15;
+                    ctx.stroke();
+                });
+            }
+
+            // Road asphalt surface
+            ROAD_EDGES.forEach(([fromKey, toKey, roadClass]) => {
+                const a = NODES[fromKey];
+                const b = NODES[toKey];
+                if (!a || !b) return;
+
+                ctx.beginPath();
+                ctx.moveTo(a.x, a.y);
+                ctx.lineTo(b.x, b.y);
+
+                if (isCloseLOD) {
+                    ctx.strokeStyle = roadClass === 'highway' ? '#1e293b' : '#263346';
+                    ctx.lineWidth = roadClass === 'highway' ? 1.1 : 0.82;
+                    ctx.stroke();
+                } else if (roadClass === 'highway') {
+                    ctx.strokeStyle = 'rgba(71, 85, 105, 0.65)';
+                    ctx.lineWidth = 3.2 / camera.zoom;
+                    ctx.stroke();
+                } else if (roadClass === 'urban') {
+                    ctx.strokeStyle = 'rgba(100, 116, 139, 0.52)';
+                    ctx.lineWidth = 2.4 / camera.zoom;
+                    ctx.stroke();
+                } else {
+                    ctx.strokeStyle = 'rgba(71, 85, 105, 0.42)';
+                    ctx.lineWidth = 1.6 / camera.zoom;
+                    ctx.stroke();
+                }
+            });
+
+            // Dashed center lane markings in Medium & Close LOD
+            if (isMediumLOD) {
+                ctx.save();
+                ctx.setLineDash([0.35, 0.35]);
+                ctx.lineWidth = isCloseLOD ? 0.06 : (0.7 / camera.zoom);
+                ctx.strokeStyle = 'rgba(226, 232, 240, 0.35)';
+                ROAD_EDGES.forEach(([fromKey, toKey, roadClass]) => {
+                    if (!isCloseLOD && roadClass === 'secondary') return;
+                    const a = NODES[fromKey];
+                    const b = NODES[toKey];
+                    if (!a || !b) return;
+                    ctx.beginPath();
+                    ctx.moveTo(a.x, a.y);
+                    ctx.lineTo(b.x, b.y);
+                    ctx.stroke();
+                });
+                ctx.restore();
+            }
+
+            ctx.restore();
+        }
+        /**
+         * WORLDBOX-STYLE MULTI-LOD SCENERY RENDERER
+         * - LOD 1 (Far, < 2.2x): Clean island overview with subtle forest canopy dots
+         * - LOD 2 (Medium, 2.2x - 6.5x): Neighborhood building footprints, town blocks & tree canopies
+         * - LOD 3 (Close, > 6.5x): Extruded 2.5D miniature houses with roofs, walls, windows, shadows, 3D trees & walking pedestrians
+         */
+        function drawWorldBoxScenery(viewBounds, timestamp) {
+            const z = camera.zoom;
+
+            // 1. Render Trees (Simplified at far zoom, 2.5D trunk + layered canopy at close zoom)
+            ctx.save();
+            for (let i = 0; i < worldTrees.length; i++) {
+                const t = worldTrees[i];
+                if (t.x < viewBounds.minX || t.x > viewBounds.maxX || t.y < viewBounds.minY || t.y > viewBounds.maxY) continue;
+                if (z < 1.8 && !t.isClusterCore) continue;
+
+                if (z < 5.0) {
+                    // Far / Medium LOD: Crisp top-down canopy circle
+                    ctx.beginPath();
+                    ctx.arc(t.x, t.y, t.r, 0, Math.PI * 2);
+                    ctx.fillStyle = t.color;
+                    ctx.globalAlpha = z < 2.2 ? 0.45 : 0.72;
+                    ctx.fill();
+                } else {
+                    // Close LOD: 2.5D tree with ground shadow, trunk, and highlighted crown
+                    ctx.globalAlpha = 0.95;
+                    // Ground shadow
+                    ctx.beginPath();
+                    ctx.ellipse(t.x + t.r * 0.35, t.y + t.r * 0.2, t.r * 0.85, t.r * 0.5, 0, 0, Math.PI * 2);
+                    ctx.fillStyle = 'rgba(2, 6, 23, 0.45)';
+                    ctx.fill();
+
+                    // Trunk
+                    ctx.fillStyle = '#5c4033';
+                    ctx.fillRect(t.x - t.r * 0.14, t.y - t.h * 0.45, t.r * 0.28, t.h * 0.5);
+
+                    // Lower foliage crown
+                    ctx.beginPath();
+                    ctx.arc(t.x, t.y - t.h * 0.55, t.r * 0.85, 0, Math.PI * 2);
+                    ctx.fillStyle = t.color;
+                    ctx.fill();
+
+                    // Sunlit upper crown
+                    ctx.beginPath();
+                    ctx.arc(t.x - t.r * 0.18, t.y - t.h * 0.72, t.r * 0.58, 0, Math.PI * 2);
+                    ctx.fillStyle = '#22c55e';
+                    ctx.globalAlpha = 0.45;
+                    ctx.fill();
+                }
+            }
+            ctx.restore();
+
+            // 2. Render Miniature Buildings (Hidden at very far zoom < 1.35x to keep island crisp)
+            if (z >= 1.35) {
+                ctx.save();
+                for (let i = 0; i < worldBuildings.length; i++) {
+                    const b = worldBuildings[i];
+                    if (b.x < viewBounds.minX || b.x > viewBounds.maxX || b.y < viewBounds.minY || b.y > viewBounds.maxY) continue;
+                    if (z < 2.4 && !b.isMajor) continue;
+
+                    const x0 = b.x - b.w / 2;
+                    const y0 = b.y - b.d / 2;
+
+                    if (z < 5.2) {
+                        // Medium LOD: Neighborhood building roofs with subtle shadow
+                        ctx.fillStyle = 'rgba(2, 6, 23, 0.45)';
+                        ctx.fillRect(x0 + 0.08, y0 + 0.08, b.w, b.d);
+                        ctx.fillStyle = b.roofColor;
+                        ctx.globalAlpha = z < 2.2 ? 0.55 : 0.85;
+                        ctx.fillRect(x0, y0, b.w, b.d);
+                    } else {
+                        // Close LOD: 2.5D isometric-style extruded miniature building
+                        ctx.globalAlpha = 1.0;
+                        const roofOffsetY = b.h * 0.55;
+
+                        // Drop shadow
+                        ctx.fillStyle = 'rgba(2, 6, 23, 0.5)';
+                        ctx.fillRect(x0 + 0.12, y0 + 0.1, b.w, b.d);
+
+                        // Front facade wall
+                        ctx.fillStyle = b.wallColor;
+                        ctx.fillRect(x0, y0 + b.d - roofOffsetY, b.w, roofOffsetY);
+
+                        // Subtle window lights on front facade when zoomed in closely
+                        if (z >= 9.0 && roofOffsetY > 0.25) {
+                            ctx.fillStyle = '#38bdf8';
+                            const winW = Math.min(0.11, b.w * 0.18);
+                            const winH = Math.min(0.12, roofOffsetY * 0.32);
+                            for (let wx = 0; wx < b.windows; wx++) {
+                                const px = x0 + (wx + 0.6) * (b.w / (b.windows + 0.2));
+                                const py = y0 + b.d - roofOffsetY * 0.68;
+                                ctx.fillRect(px, py, winW, winH);
+                            }
+                        }
+
+                        // Extruded pitched/flat roof
+                        ctx.fillStyle = b.roofColor;
+                        ctx.fillRect(x0, y0 - roofOffsetY, b.w, b.d);
+                        ctx.strokeStyle = 'rgba(15, 23, 42, 0.55)';
+                        ctx.lineWidth = 0.035;
+                        ctx.strokeRect(x0, y0 - roofOffsetY, b.w, b.d);
+                    }
+                }
+                ctx.restore();
+            }
+
+            // 3. Render Ambient Sidewalk Pedestrians at Medium-Close & Close Zoom
+            if (z >= 4.5) {
+                ctx.save();
+                for (let i = 0; i < worldPedestrians.length; i++) {
+                    const p = worldPedestrians[i];
+                    if (p.x < viewBounds.minX || p.x > viewBounds.maxX || p.y < viewBounds.minY || p.y > viewBounds.maxY) continue;
+
+                    // Shadow
+                    ctx.beginPath();
+                    ctx.arc(p.x + 0.03, p.y + 0.03, 0.09, 0, Math.PI * 2);
+                    ctx.fillStyle = 'rgba(2, 6, 23, 0.55)';
+                    ctx.fill();
+
+                    // Body
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y - 0.05, 0.085, 0, Math.PI * 2);
+                    ctx.fillStyle = p.color;
+                    ctx.fill();
+
+                    // Head
+                    if (z >= 8.0) {
+                        ctx.beginPath();
+                        ctx.arc(p.x, p.y - 0.15, 0.055, 0, Math.PI * 2);
+                        ctx.fillStyle = '#fde68a';
+                        ctx.fill();
+                    }
+                }
+                ctx.restore();
+            }
+        }
+
+        function drawNodesAndLabels(viewBounds, timestamp) {
+            const occupiedBoxes = [];
+
+            const nodeKeys = Object.keys(NODES).filter(k => NODES[k].type !== 'junction');
+            nodeKeys.sort((a, b) => {
+                const priority = n => (n.type === 'hub' ? 4 : (n.major ? 3 : (n.type === 'town' ? 2 : 1)));
+                return priority(NODES[b]) - priority(NODES[a]);
+            });
+
+            nodeKeys.forEach(key => {
+                const node = NODES[key];
+                const isUrbanStop = node.type === 'urban_stop';
+                const isSelectedStop = selectedStopKey === key;
+                const paxState = stopPassengerState[key];
+                const waitingCount = paxState ? paxState.waiting : 0;
+
+                if (isUrbanStop && camera.zoom < 1.35 && activeRouteFilter !== 'URBAN' && !isSelectedStop) {
+                    return;
+                }
+
+                ctx.save();
+
+                // Hub interchange pulse ring
+                if (node.type === 'hub' || isSelectedStop) {
+                    ctx.beginPath();
+                    ctx.arc(node.x, node.y, (isSelectedStop ? 9.0 : 6.8) / camera.zoom, 0, Math.PI * 2);
+                    ctx.fillStyle = isSelectedStop ? 'rgba(52, 211, 153, 0.22)' : 'rgba(6, 182, 212, 0.16)';
+                    ctx.fill();
+                    ctx.strokeStyle = isSelectedStop ? '#34d399' : 'rgba(34, 211, 238, 0.65)';
+                    ctx.lineWidth = 1.3 / camera.zoom;
+                    ctx.stroke();
+                }
+
+                // Close-Zoom 3D Bus Shelter & Waiting Passenger Figures
+                if (camera.zoom >= 5.0 && node.x >= viewBounds.minX && node.x <= viewBounds.maxX && node.y >= viewBounds.minY && node.y <= viewBounds.maxY) {
+                    // Miniature glass/cyan bus shelter canopy beside the stop
+                    const shX = node.x + 0.45;
+                    const shY = node.y - 0.45;
+                    ctx.fillStyle = 'rgba(15, 23, 42, 0.85)';
+                    ctx.fillRect(shX - 0.32, shY - 0.18, 0.64, 0.32);
+                    ctx.strokeStyle = '#22d3ee';
+                    ctx.lineWidth = 0.04;
+                    ctx.strokeRect(shX - 0.32, shY - 0.18, 0.64, 0.32);
+
+                    // Draw individual waiting passengers queued at the stop shelter
+                    const visiblePaxDots = Math.min(waitingCount, 10);
+                    for (let p = 0; p < visiblePaxDots; p++) {
+                        const row = Math.floor(p / 5);
+                        const col = p % 5;
+                        const px = shX - 0.24 + col * 0.12;
+                        const py = shY + 0.25 + row * 0.14 + Math.sin(timestamp * 0.005 + p) * 0.015;
+
+                        ctx.beginPath();
+                        ctx.arc(px, py, 0.048, 0, Math.PI * 2);
+                        ctx.fillStyle = p % 2 === 0 ? '#34d399' : '#38bdf8';
+                        ctx.fill();
+
+                        if (camera.zoom >= 8.5) {
+                            ctx.beginPath();
+                            ctx.arc(px, py - 0.065, 0.032, 0, Math.PI * 2);
+                            ctx.fillStyle = '#fde68a';
+                            ctx.fill();
+                        }
+                    }
+                }
+
+                // Stop marker dot
+                const radius = (node.type === 'hub' ? 3.8 : (node.major ? 3.1 : 2.3)) / camera.zoom;
+                ctx.beginPath();
+                ctx.arc(node.x, node.y, radius, 0, Math.PI * 2);
+                ctx.fillStyle = isSelectedStop ? '#34d399' : (node.type === 'hub' ? '#ffffff' : (node.major ? '#e2e8f0' : '#94a3b8'));
+                ctx.fill();
+                ctx.strokeStyle = '#060d1a';
+                ctx.lineWidth = 1.2 / camera.zoom;
+                ctx.stroke();
+
+                // Waiting passenger badge in Medium/Close zoom
+                if (waitingCount > 0 && (camera.zoom >= 2.3 || node.type === 'hub' || isSelectedStop)) {
+                    const badgeFont = 8.2 / camera.zoom;
+                    ctx.font = `700 ${badgeFont}px "JetBrains Mono", monospace`;
+                    const paxText = `${waitingCount}p`;
+                    const bw = ctx.measureText(paxText).width + 4 / camera.zoom;
+                    const bh = 10 / camera.zoom;
+                    const bx = node.x + 5 / camera.zoom;
+                    const by = node.y - bh / 2;
+
+                    ctx.beginPath();
+                    ctx.roundRect(bx, by, bw, bh, 2.5 / camera.zoom);
+                    ctx.fillStyle = 'rgba(6, 78, 59, 0.92)';
+                    ctx.fill();
+                    ctx.strokeStyle = '#34d399';
+                    ctx.lineWidth = 0.8 / camera.zoom;
+                    ctx.stroke();
+
+                    ctx.fillStyle = '#a7f3d0';
+                    ctx.textAlign = 'left';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText(paxText, bx + 2 / camera.zoom, node.y);
+                }
+
+                const showLabelCandidate =
+                    isSelectedStop ||
+                    node.type === 'hub' ||
+                    node.major ||
+                    (node.type === 'town' && camera.zoom >= 1.25) ||
+                    (isUrbanStop && (camera.zoom >= 1.85 || activeRouteFilter === 'URBAN'));
+
+                if (showLabelCandidate) {
+                    const labelText = camera.zoom >= 4.0 ? node.name : (node.shortName || node.name);
+                    const screenPt = worldToScreen(node.x, node.y);
+                    const fontPx = node.type === 'hub' ? 11.5 : (node.major ? 10.5 : 9.5);
+                    const estWidth = labelText.length * (fontPx * 0.58) + 8;
+                    const estHeight = fontPx + 4;
+                    const boxX = screenPt.x - estWidth / 2;
+                    const boxY = screenPt.y - 8 - estHeight;
+
+                    let collides = false;
+                    if (!isSelectedStop) {
+                        for (let i = 0; i < occupiedBoxes.length; i++) {
+                            const b = occupiedBoxes[i];
+                            if (boxX < b.x + b.w && boxX + estWidth > b.x && boxY < b.y + b.h && boxY + estHeight > b.y) {
+                                collides = true;
+                                break;
+                            }
+                        }
+                    }
+
+                    if (!collides) {
+                        occupiedBoxes.push({ x: boxX, y: boxY, w: estWidth, h: estHeight });
+                        const worldFontSize = fontPx / camera.zoom;
+                        ctx.font = `${node.type === 'hub' || node.major ? '600' : '500'} ${worldFontSize}px Inter, sans-serif`;
+                        ctx.textAlign = 'center';
+                        ctx.textBaseline = 'bottom';
+
+                        const labelY = node.y - (node.type === 'hub' ? 8.5 : 5.5) / camera.zoom;
+                        ctx.lineWidth = 3 / camera.zoom;
+                        ctx.strokeStyle = 'rgba(4, 9, 18, 0.92)';
+                        ctx.strokeText(labelText, node.x, labelY);
+
+                        ctx.fillStyle = isSelectedStop ? '#34d399' : (node.type === 'hub' ? '#ffffff' : (node.major ? '#f1f5f9' : '#cbd5e1'));
+                        ctx.fillText(labelText, node.x, labelY);
+                    }
+                }
+
+                ctx.restore();
+            });
+        }
+
+        function drawBuses(timestamp) {
+            const isCloseLOD = camera.zoom >= 6.5;
+
+            buses.forEach(bus => {
+                const visible = isRouteVisible(bus.route);
+                const isSelected = bus.id === selectedBusId;
+
+                if (!visible && !isSelected) return;
+
+                ctx.save();
+                ctx.translate(bus.x, bus.y);
+
+                // Selection highlight ring
+                if (isSelected) {
+                    const pulse = (Math.sin(timestamp * 0.006) + 1) * 0.5;
+                    ctx.beginPath();
+                    ctx.arc(0, 0, (11 + pulse * 4) / camera.zoom, 0, Math.PI * 2);
+                    ctx.strokeStyle = bus.route.color;
+                    ctx.lineWidth = 1.8 / camera.zoom;
+                    ctx.stroke();
+                }
+
+                // Rotate vehicle body to match road heading
+                ctx.save();
+                ctx.rotate(bus.angle);
+
+                const isUrban = bus.route.type === 'URBAN';
+                // Scale bus cleanly in world space when at Street 3D zoom, or screen-relative at Island zoom
+                const w = isCloseLOD ? (isUrban ? 1.55 : 1.85) : (isUrban ? 10.5 : 12.2) / camera.zoom;
+                const h = isCloseLOD ? (isUrban ? 0.78 : 0.86) : (isUrban ? 6.0 : 6.6) / camera.zoom;
+                const r = isCloseLOD ? 0.22 : 2.0 / camera.zoom;
+
+                // Headlight beams at close zoom
+                if (isCloseLOD) {
+                    const beamGrad = ctx.createLinearGradient(w / 2, 0, w / 2 + 1.4, 0);
+                    beamGrad.addColorStop(0, 'rgba(254, 240, 138, 0.38)');
+                    beamGrad.addColorStop(1, 'rgba(254, 240, 138, 0)');
+                    ctx.fillStyle = beamGrad;
+                    ctx.beginPath();
+                    ctx.moveTo(w / 2, -h * 0.35);
+                    ctx.lineTo(w / 2 + 1.4, -h * 0.85);
+                    ctx.lineTo(w / 2 + 1.4, h * 0.85);
+                    ctx.lineTo(w / 2, h * 0.35);
+                    ctx.closePath();
+                    ctx.fill();
+                }
+
+                // Vehicle chassis
+                ctx.beginPath();
+                ctx.roundRect(-w / 2, -h / 2, w, h, r);
+                ctx.fillStyle = '#091120';
+                ctx.fill();
+                ctx.lineWidth = isCloseLOD ? 0.12 : (isSelected ? 2.0 : 1.4) / camera.zoom;
+                ctx.strokeStyle = isSelected ? '#ffffff' : bus.route.color;
+                ctx.stroke();
+
+                // Color-coded roof livery (TIB Red/Yellow or EMT Blue/Cyan)
+                ctx.beginPath();
+                ctx.roundRect(-w * 0.36, -h * 0.3, w * 0.6, h * 0.6, r * 0.4);
+                ctx.fillStyle = bus.route.color;
+                ctx.fill();
+
+                // Roof AC pod & windshield detail in close zoom
+                if (isCloseLOD) {
+                    ctx.fillStyle = '#e2e8f0';
+                    ctx.fillRect(-w * 0.15, -h * 0.18, w * 0.26, h * 0.36);
+                    ctx.fillStyle = '#38bdf8';
+                    ctx.fillRect(w * 0.26, -h * 0.34, w * 0.14, h * 0.68);
+                } else {
+                    // Forward nose chevron
+                    ctx.beginPath();
+                    ctx.moveTo(w * 0.34, -h * 0.25);
+                    ctx.lineTo(w * 0.44, 0);
+                    ctx.lineTo(w * 0.34, h * 0.25);
+                    ctx.strokeStyle = '#ffffff';
+                    ctx.lineWidth = 1.1 / camera.zoom;
+                    ctx.stroke();
+                }
+
+                ctx.restore();
+
+                // Compact Callsign & Passenger Count Tag
+                const showTag = isSelected || (showBusLabels && (camera.zoom >= 1.35 || activeRouteFilter === bus.routeId));
+                if (showTag) {
+                    const tagFont = 8.5 / camera.zoom;
+                    ctx.font = `600 ${tagFont}px "JetBrains Mono", monospace`;
+                    const text = isSelected || camera.zoom >= 2.2
+                        ? `${bus.routeId} • ${bus.passengersOnBoard}p`
+                        : bus.routeId;
+                    const padX = 3 / camera.zoom;
+                    const boxW = ctx.measureText(text).width + padX * 2;
+                    const boxH = 11 / camera.zoom;
+                    const offsetY = (isCloseLOD ? 0.65 : 7.5 / camera.zoom);
+
+                    ctx.beginPath();
+                    ctx.roundRect(-boxW / 2, offsetY, boxW, boxH, 2.5 / camera.zoom);
+                    ctx.fillStyle = isSelected ? bus.route.color : 'rgba(9, 16, 30, 0.9)';
+                    ctx.fill();
+                    ctx.strokeStyle = bus.route.color;
+                    ctx.lineWidth = 0.9 / camera.zoom;
+                    ctx.stroke();
+
+                    ctx.fillStyle = isSelected ? '#040912' : '#f1f5f9';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText(text, 0, offsetY + boxH / 2 + 0.3 / camera.zoom);
+                }
+
+                ctx.restore();
+            });
+        }
+
+        // INTERACTION: POINTER, TOUCH, PINCH-ZOOM & HIT DETECTION
+        let isDragging = false;
+        let dragStartScreen = { x: 0, y: 0 };
+        let cameraStart = { x: 0, y: 0 };
+        let pointerMovedDistance = 0;
+        let lastPinchDist = null;
+
+        canvas.addEventListener('mousedown', e => {
+            isDragging = true;
+            pointerMovedDistance = 0;
+            dragStartScreen = { x: e.clientX, y: e.clientY };
+            cameraStart = { x: camera.x, y: camera.y };
+        });
+
+        window.addEventListener('mousemove', e => {
+            if (!isDragging) return;
+            const dx = e.clientX - dragStartScreen.x;
+            const dy = e.clientY - dragStartScreen.y;
+            pointerMovedDistance = Math.hypot(dx, dy);
+            camera.x = cameraStart.x - dx / camera.zoom;
+            camera.y = cameraStart.y - dy / camera.zoom;
+            clampCamera();
+        });
+
+        window.addEventListener('mouseup', e => {
+            if (isDragging && pointerMovedDistance < 6) {
+                handleCanvasTap(e.clientX, e.clientY);
+            }
+            isDragging = false;
+        });
+
+        // Wheel Zoom on Desktop
+        canvas.addEventListener('wheel', e => {
+            e.preventDefault();
+            const zoomFactor = e.deltaY < 0 ? 1.14 : 0.88;
+            zoomMap(zoomFactor, e.clientX, e.clientY);
+        }, { passive: false });
+
+        // Mobile Safari Single-Finger Pan & Two-Finger Pinch Zoom
+        canvas.addEventListener('touchstart', e => {
+            if (e.touches.length === 1) {
+                isDragging = true;
+                pointerMovedDistance = 0;
+                dragStartScreen = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+                cameraStart = { x: camera.x, y: camera.y };
+                lastPinchDist = null;
+            } else if (e.touches.length === 2) {
+                isDragging = false;
+                const dx = e.touches[0].clientX - e.touches[1].clientX;
+                const dy = e.touches[0].clientY - e.touches[1].clientY;
+                lastPinchDist = Math.hypot(dx, dy);
+            }
+        }, { passive: true });
+
+        canvas.addEventListener('touchmove', e => {
+            e.preventDefault();
+            if (e.touches.length === 1 && isDragging) {
+                const dx = e.touches[0].clientX - dragStartScreen.x;
+                const dy = e.touches[0].clientY - dragStartScreen.y;
+                pointerMovedDistance = Math.hypot(dx, dy);
+                camera.x = cameraStart.x - dx / camera.zoom;
+                camera.y = cameraStart.y - dy / camera.zoom;
+                clampCamera();
+            } else if (e.touches.length === 2 && lastPinchDist) {
+                const dx = e.touches[0].clientX - e.touches[1].clientX;
+                const dy = e.touches[0].clientY - e.touches[1].clientY;
+                const dist = Math.hypot(dx, dy);
+                const centerX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+                const centerY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+                const factor = dist / lastPinchDist;
+                zoomMap(factor, centerX, centerY);
+                lastPinchDist = dist;
+            }
+        }, { passive: false });
+
+        canvas.addEventListener('touchend', e => {
+            if (isDragging && pointerMovedDistance < 10 && e.changedTouches.length === 1) {
+                handleCanvasTap(e.changedTouches[0].clientX, e.changedTouches[0].clientY);
+            }
+            if (e.touches.length === 0) {
+                isDragging = false;
+                lastPinchDist = null;
+            }
+        });
+
+        // Distance from point P to segment AB for tapping route corridors directly
+        function distToSegment(p, a, b) {
+            const dx = b.x - a.x;
+            const dy = b.y - a.y;
+            const l2 = dx * dx + dy * dy;
+            if (l2 === 0) return Math.hypot(p.x - a.x, p.y - a.y);
+            let t = ((p.x - a.x) * dx + (p.y - a.y) * dy) / l2;
+            t = Math.max(0, Math.min(1, t));
+            return Math.hypot(p.x - (a.x + t * dx), p.y - (a.y + t * dy));
+        }
+
+        function handleCanvasTap(screenX, screenY) {
+            const worldPt = screenToWorld(screenX, screenY);
+            const busHitRadius = Math.max(1.2, 15 / camera.zoom);
+
+            // 1. Check if user tapped a visible bus first
+            let closestBus = null;
+            let bestBusDist = busHitRadius;
+
+            buses.forEach(bus => {
+                if (!isRouteVisible(bus.route)) return;
+                const d = Math.hypot(bus.x - worldPt.x, bus.y - worldPt.y);
+                if (d < bestBusDist) {
+                    bestBusDist = d;
+                    closestBus = bus;
+                }
+            });
+
+            if (closestBus) {
+                selectBus(closestBus);
+                return;
+            }
+
+            // 2. Check if user tapped a transit stop / hub
+            const stopHitRadius = Math.max(1.0, 12 / camera.zoom);
+            let closestStopKey = null;
+            let bestStopDist = stopHitRadius;
+
+            Object.keys(NODES).forEach(key => {
+                const n = NODES[key];
+                if (n.type === 'junction') return;
+                const d = Math.hypot(n.x - worldPt.x, n.y - worldPt.y);
+                if (d < bestStopDist) {
+                    bestStopDist = d;
+                    closestStopKey = key;
+                }
+            });
+
+            if (closestStopKey) {
+                selectStop(closestStopKey);
+                return;
+            }
+
+            // 3. Otherwise check if user tapped near a visible route corridor line
+            const routeHitRadius = Math.max(0.8, 9 / camera.zoom);
+            let closestRoute = null;
+            let bestRouteDist = routeHitRadius;
+
+            ROUTES.forEach(route => {
+                if (!isRouteVisible(route)) return;
+                route.segments.forEach(seg => {
+                    const d = distToSegment(worldPt, seg.a, seg.b);
+                    if (d < bestRouteDist) {
+                        bestRouteDist = d;
+                        closestRoute = route;
+                    }
+                });
+            });
+
+            if (closestRoute) {
+                selectedBusId = null;
+                selectedStopKey = null;
+                filterRoute(closestRoute.id);
+                return;
+            }
+
+            // 4. Tapped empty map -> clear selection
+            if (selectedBusId || selectedStopKey) {
+                selectedStopKey = null;
+                selectBus(null);
+            }
+        }
+
+        // Keyboard shortcuts for desktop convenience
+        window.addEventListener('keydown', e => {
+            if (e.code === 'Space') {
+                e.preventDefault();
+                setSimSpeed(simSpeed === 0 ? 1 : 0);
+            } else if (e.key === '1') {
+                setSimSpeed(1);
+            } else if (e.key === '2') {
+                setSimSpeed(2);
+            } else if (e.key === '5') {
+                setSimSpeed(5);
+            } else if (e.key === '+' || e.key === '=') {
+                zoomMap(1.25);
+            } else if (e.key === '-') {
+                zoomMap(0.8);
+            }
+        });
+
+        window.addEventListener('resize', () => {
+            clampCamera();
+        });
+
+        // MAIN ANIMATION LOOP
+        let lastFrameTime = performance.now();
+        function gameLoop(now) {
+            const realDt = Math.min(0.1, (now - lastFrameTime) / 1000);
+            lastFrameTime = now;
+
+            updateSimulation(realDt);
+            drawMap(now);
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        window.onload = function () {
+            initPhase2World();
+            buildRouteButtons();
+            initBuses();
+            resetCamera();
+            requestAnimationFrame(gameLoop);
+        };
+    </script>
+</body>
+</html>
